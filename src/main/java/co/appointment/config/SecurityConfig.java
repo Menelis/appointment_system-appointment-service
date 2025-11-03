@@ -22,6 +22,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+
     private final AppConfigProperties appConfigProperties;
 
     @Bean
@@ -32,8 +33,9 @@ public class SecurityConfig {
                 .exceptionHandling(exceptionHandler ->
                         exceptionHandler.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(authorizeRequests ->
-                        authorizeRequests.requestMatchers(appConfigProperties.getWhiteList())
-                                .permitAll()
+                        authorizeRequests.requestMatchers(appConfigProperties.getWhiteList()).permitAll()
+                                .requestMatchers("/api/*/appointment/admin/**").hasRole(RoleConstants.ADMIN_ROLE)
+                                .requestMatchers("/api/*/appointment/customer/**").hasRole(RoleConstants.CUSTOMER_ROLE)
                                 .anyRequest().authenticated())
                 .build();
     }
