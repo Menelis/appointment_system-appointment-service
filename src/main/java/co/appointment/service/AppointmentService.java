@@ -13,6 +13,7 @@ import co.appointment.shared.security.service.AuthenticationFacade;
 import co.appointment.shared.util.SharedObjectUtils;
 import co.appointment.util.ObjectUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Sort;
@@ -26,6 +27,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
@@ -73,17 +75,25 @@ public class AppointmentService {
         if(optionalAppointment.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+        String status = getStatus(request.getStatus(), optionalAppointment.get().getStatus());
         Appointment appointment = appointmentToDTOMapper.toEntity(request);
         SharedObjectUtils.mapAuditFields(appointment, optionalAppointment.get());
         appointment.setUpdatedAt(LocalDateTime.now());
         appointment.setUpdatedBy(authenticationFacade.getUserId());
         appointment.setUpdatedAt(LocalDateTime.now());
-        appointment.setStatus(
-                StringUtils.hasLength(request.getStatus())
-                        ? request.getStatus()
-                        : optionalAppointment.get().getStatus());
+        appointment.setStatus(status);
         appointmentRepository.save(appointment);
+        sendKafkaEvent(status, request.getId());
         return ResponseEntity.ok(new ApiResponse<>(true, "Appointment has been updated successfully."));
+    }
+    private String getStatus(final String requestStatus, final String dbObjectStatus) {
+        if(StringUtils.hasText(requestStatus)) {
+            return requestStatus;
+        }
+        return dbObjectStatus;
+    }
+    private void sendKafkaEvent(final String status, final Long appointmentId) {
+        log.info("Sending event to kafka topic for appointment id: {} and status: {}", appointmentId, status);
     }
     public ResponseEntity<ApiResponse<AppointmentDTO>> updateAppointmentStatus(final UpdateAppointmentStatusRequest request) {
         Appointment appointment = appointmentRepository.findById(request.getId()).orElse(null);
@@ -95,6 +105,7 @@ public class AppointmentService {
         appointment.setStatus(request.getStatus());
         appointmentRepository.save(appointment);
 
+        sendKafkaEvent(request.getStatus(), request.getId());
         return ResponseEntity.ok(new ApiResponse<>(true, "Appointment has been updated successfully"));
     }
 }

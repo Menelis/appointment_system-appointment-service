@@ -1,18 +1,15 @@
 package co.appointment.config;
 
-import co.appointment.shared.constant.RoleConstants;
 import co.appointment.shared.model.CorsSettings;
+import co.appointment.shared.service.GrcpAuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -25,18 +22,18 @@ public class SecurityConfig {
 
     private final AppConfigProperties appConfigProperties;
 
+
     @Bean
-    public SecurityFilterChain filterChain(final HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(final HttpSecurity http,
+                                           final GrcpAuthService grcpAuthService) throws Exception {
         return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
-                .exceptionHandling(exceptionHandler ->
-                        exceptionHandler.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(authorizeRequests ->
-                        authorizeRequests.requestMatchers(appConfigProperties.getWhiteList()).permitAll()
-                                .requestMatchers("/api/*/appointment/admin/**").hasRole(RoleConstants.ADMIN_ROLE)
-                                .requestMatchers("/api/*/appointment/customer/**").hasRole(RoleConstants.CUSTOMER_ROLE)
-                                .anyRequest().authenticated())
+                        authorizeRequests.anyRequest().permitAll())
+//                .addFilterBefore(
+//                        new JwtAuthFilter(appConfigProperties.getJwt(), grcpAuthService),
+//                        UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 

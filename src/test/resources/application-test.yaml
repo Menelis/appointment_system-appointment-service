@@ -4,3 +4,8 @@ spring:
   cloud:
     config:
       enabled: false
+app:
+  micro-services:
+    -
+      id: user_service
+      url: localhost
