@@ -1,22 +1,60 @@
 package co.appointment.util;
 
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import co.appointment.entity.Appointment;
+import co.appointment.entity.Slot;
+import co.appointment.grpc.GetUserResponse;
+import co.appointment.shared.constant.SharedConstants;
+import lombok.extern.slf4j.Slf4j;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
+@Slf4j
 public class ObjectUtils {
-    public static Pageable getPageable(final int pageNumber, final int pageSize) {
-        return PageRequest.of(pageNumber, pageSize);
-    }
-    public static Pageable getPageable(final int pageNumber, final int pageSize, Sort sort) {
-        return PageRequest.of(pageNumber, pageSize, sort);
-    }
-    public static String dateToString(final Date date, final String dateFormat) {
-        SimpleDateFormat formatter = new SimpleDateFormat(dateFormat);
 
-        return formatter.format(date);
+    /**
+     * Get confirmed appointment.
+     * @param appointment {@link Appointment} instance
+     * @param userResponse {@link GetUserResponse} instance
+     * @return Email body
+     */
+    public static String getAppointmentPendingConfirmedEmailBody(final Appointment appointment,
+                                                                 final GetUserResponse userResponse,
+                                                                 final String emailTemplate) {
+        return String.format(emailTemplate,
+                userResponse.getFullName(),
+                appointment.getBranchId(),
+                appointment.getAppointmentDate(),
+                getAppointmentSlot(appointment),
+                appointment.getReferenceNo(),
+                appointment.getStatus(),
+                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER);
+    }
+    public static String getAppointmentConfirmedEmailBody(final Appointment appointment,
+                                                          final GetUserResponse userResponse,
+                                                          final String emailTemplate) {
+        return String.format(emailTemplate,
+                userResponse.getFullName(),
+                appointment.getBranchId(),
+                appointment.getAppointmentDate(),
+                getAppointmentSlot(appointment),
+                appointment.getReferenceNo(),
+                appointment.getStatus(),
+                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER);
+    }
+    public static String getAppointmentCancelledEmailBody(final Appointment appointment,
+                                                          final GetUserResponse userResponse,
+                                                          final String emailTemplate) {
+        return String.format(emailTemplate,
+                userResponse.getFullName(),
+                appointment.getBranchId(),
+                appointment.getAppointmentDate(),
+                getAppointmentSlot(appointment),
+                appointment.getDescription(),
+                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER);
+    }
+    private static String getAppointmentSlot(final Appointment appointment) {
+        Slot appointmentSlot = appointment.getSlot();
+        if(appointmentSlot == null) {
+            return "Any time";
+        }
+        return String.format("%s - %s", appointmentSlot.getSlotStart(), appointmentSlot.getSlotEnd());
     }
 }
