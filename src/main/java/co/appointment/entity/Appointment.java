@@ -1,15 +1,19 @@
 package co.appointment.entity;
 
-import co.appointment.constant.AppConstants;
 import co.appointment.shared.entity.base.BaseEntity;
-import co.appointment.util.ObjectUtils;
-import jakarta.persistence.*;
+import jakarta.persistence.Table;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Column;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
-import org.hibernate.annotations.Formula;
 
+import java.sql.Date;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
@@ -40,7 +44,7 @@ public class Appointment extends BaseEntity {
     @Column(nullable = false, name = "reference_no")
     private String referenceNo;
 
-    @Column(nullable = false, name = "appointment_status", length = 20)
+    @Column(nullable = false, name = "appointment_status", length = 50)
     private String status;
 
     @Column(name = "updated_at")
