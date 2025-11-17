@@ -9,4 +9,8 @@ public interface AppointmentStatus {
      * Appointment booking cancelled.
      */
     String BOOKING_CANCELLED = "CANCELLED";
+    /**
+     * Appointment status when the user book an appointment.
+     */
+    String BOOKING_PENDING_CONFIRMATION = "PENDING CONFIRMATION";
 }
