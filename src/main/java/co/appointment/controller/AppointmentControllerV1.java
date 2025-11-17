@@ -34,7 +34,7 @@ public class AppointmentControllerV1 {
         Page<AppointmentDTO> pagedAppointments = appointmentService.getAllAppointments(pageNumber, pageSize);
         return ResponseEntity.ok(new ApiResponse<>(pagedAppointments));
     }
-    @GetMapping("/customer/appointments")
+    @GetMapping("/customer/listAll")
     public ResponseEntity<ApiResponse<Page<AppointmentDTO>>> getCustomerAppointments(
             @RequestParam(name = SharedConstants.PAGE_NUMBER_PARAMETER_NAME, defaultValue = SharedConstants.PAGE_NUMBER_DEFAULT_VALUE) final int pageNumber,
             @RequestParam(name = SharedConstants.PAGE_SIZE_PARAMETER_NAME, defaultValue = SharedConstants.PAGE_SIZE_DEFAULT_VALUE) final int pageSize) {
@@ -42,6 +42,21 @@ public class AppointmentControllerV1 {
         Page<AppointmentDTO> pagedAppointments = appointmentService.getAppointmentsByCustomer(pageNumber, pageSize);
 
         return ResponseEntity.ok(new ApiResponse<>(pagedAppointments));
+    }
+    @GetMapping("/findByReferenceNo")
+    public ResponseEntity<ApiResponse<Page<AppointmentDTO>>> findAppointmentByReferenceNo(
+            @RequestParam(name = "referenceNo") final String referenceNo,
+            @RequestParam(name = SharedConstants.PAGE_NUMBER_PARAMETER_NAME, defaultValue = SharedConstants.PAGE_NUMBER_DEFAULT_VALUE, required = false) final int pageNumber,
+            @RequestParam(name = SharedConstants.PAGE_SIZE_PARAMETER_NAME, defaultValue = SharedConstants.PAGE_SIZE_DEFAULT_VALUE, required = false) final int pageSize) {
+
+        Page<AppointmentDTO> pagedAppointments = appointmentService.getAppointmentByReferenceNo(referenceNo, pageNumber, pageSize);
+
+        return ResponseEntity.ok(new ApiResponse<>(pagedAppointments));
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<AppointmentDTO>> getAppointmentById(@PathVariable final long id,
+                                                                          @RequestBody @Valid UpdateAppointmentRequest request) {
+        return appointmentService.getAppointmentById(id);
     }
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<AppointmentDTO>> createAppointment(@RequestBody @Valid final NewAppointmentRequest request) {
