@@ -1,7 +1,5 @@
 package co.appointment.config;
 
-import co.appointment.shared.model.CorsSettings;
-import co.appointment.shared.model.JwtSettings;
 import co.appointment.shared.model.OpenApiSettings;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -11,7 +9,19 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class AppConfigProperties {
 
     private OpenApiSettings openApi = new OpenApiSettings();
-    private String[] whiteList;
-    private CorsSettings cors = new CorsSettings();
-    private JwtSettings jwt = new JwtSettings();
+    private String[] whiteList = {};
+    private String[] adminRoutes = {};
+    private KafkaSettings kafka = new KafkaSettings();
+    private EmailTemplate emailTemplate = new EmailTemplate();
+
+    @Data
+    public static class KafkaSettings {
+        private String notificationTopic;
+    }
+    @Data
+    public static class EmailTemplate {
+        private String pendingConfirmationEmailTemplate;
+        private String confirmationEmailTemplate;
+        private String cancellationEmailTemplate;
+    }
 }
