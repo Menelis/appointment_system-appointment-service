@@ -3,18 +3,22 @@ package co.appointment.service;
 import co.appointment.config.AppConfigProperties;
 import co.appointment.constant.AppointmentStatus;
 import co.appointment.entity.Appointment;
+import co.appointment.grpc.GetBranchResponse;
 import co.appointment.grpc.GetUserResponse;
 import co.appointment.shared.constant.EventTypeConstants;
 import co.appointment.shared.kafka.event.EmailEvent;
 import co.appointment.shared.service.GrcpAuthService;
+import co.appointment.shared.service.GrcpBranchService;
 import co.appointment.shared.util.KafkaUtils;
 import co.appointment.util.ObjectUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.AbstractMap;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class NotificationEventService {
 
@@ -23,6 +27,8 @@ public class NotificationEventService {
     private final AppConfigProperties.EmailTemplate emailTemplate;
     //Communicate with user service
     private final GrcpAuthService grcpAuthService;
+    //Communicate with branch service
+    private final GrcpBranchService grcpBranchService;
 
 
     private static final Map<String, Object> BOOKING_CONFIRMED_HEADER = Map.of(
@@ -38,32 +44,45 @@ public class NotificationEventService {
     public NotificationEventService(
             final KafkaTemplate<String, EmailEvent> kafkaTemplate,
             final AppConfigProperties appConfigProperties,
-            final GrcpAuthService grcpAuthService) {
+            final GrcpAuthService grcpAuthService,
+            final GrcpBranchService grcpBranchService) {
         this.kafkaTemplate = kafkaTemplate;
         this.notificationTopic = appConfigProperties.getKafka().getNotificationTopic();
         this.grcpAuthService = grcpAuthService;
+        this.grcpBranchService = grcpBranchService;
         this.emailTemplate = appConfigProperties.getEmailTemplate();
     }
     public void publishAppointmentEvent(final Appointment appointment) {
         GetUserResponse userResponse = grcpAuthService.getUserById(appointment.getCustomerId());
-        AbstractMap.SimpleImmutableEntry<String, Map<String, Object>> emailBodyWithEventHeaders = getEmailBodyWithEventHeaders(appointment, userResponse);
+        GetBranchResponse branchResponse = grcpBranchService.getBranchById(appointment.getBranchId());
+
+        if(userResponse == null) {
+            log.info("Could not sent notification for appointment Id: {} because the user response is null", appointment.getId());
+            return;
+        }
+        if(branchResponse == null) {
+            log.info("Could not sent notification for appointment Id: {} because the branch response is null", appointment.getId());
+            return;
+        }
+
+        AbstractMap.SimpleImmutableEntry<String, Map<String, Object>> emailBodyWithEventHeaders = getEmailBodyWithEventHeaders(appointment, userResponse, branchResponse);
         EmailEvent emailEvent = new EmailEvent(
                 userResponse.getEmail(), String.format("Booking - %s", appointment.getReferenceNo()), emailBodyWithEventHeaders.getKey(), false);
         KafkaUtils.sendKafkaEvent(kafkaTemplate, notificationTopic, null, emailEvent, emailBodyWithEventHeaders.getValue());
     }
     private AbstractMap.SimpleImmutableEntry<String, Map<String, Object>> getEmailBodyWithEventHeaders(
-            final Appointment appointment, final GetUserResponse userResponse) {
+            final Appointment appointment, final GetUserResponse userResponse, final GetBranchResponse branchResponse) {
 
         return switch (appointment.getStatus().toUpperCase()) {
             case AppointmentStatus.BOOKING_PENDING_CONFIRMATION ->
                 new AbstractMap.SimpleImmutableEntry<>(ObjectUtils.getAppointmentPendingConfirmedEmailBody(
-                        appointment, userResponse, emailTemplate.getPendingConfirmationEmailTemplate()), BOOKING_PENDING_CONFIRM_HEADER);
+                        appointment, userResponse, branchResponse, emailTemplate.getPendingConfirmationEmailTemplate()), BOOKING_PENDING_CONFIRM_HEADER);
             case AppointmentStatus.BOOKING_CONFIRMED ->
                 new AbstractMap.SimpleImmutableEntry<>(
-                        ObjectUtils.getAppointmentConfirmedEmailBody(appointment, userResponse, emailTemplate.getConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
+                        ObjectUtils.getAppointmentConfirmedEmailBody(appointment, userResponse, branchResponse, emailTemplate.getConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
             case AppointmentStatus.BOOKING_CANCELLED ->
                 new AbstractMap.SimpleImmutableEntry<>(
-                        ObjectUtils.getAppointmentCancelledEmailBody(appointment, userResponse, emailTemplate.getCancellationEmailTemplate()), BOOKING_CANCELLED_HEADER);
+                        ObjectUtils.getAppointmentCancelledEmailBody(appointment, userResponse, branchResponse, emailTemplate.getCancellationEmailTemplate()), BOOKING_CANCELLED_HEADER);
             default -> throw new IllegalArgumentException("Invalid status " + appointment.getStatus());
         };
     }
