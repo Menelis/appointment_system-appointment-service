@@ -7,11 +7,9 @@ import co.appointment.grpc.GetUserResponse;
 import co.appointment.shared.constant.SharedConstants;
 import co.appointment.shared.util.SharedObjectUtils;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.util.StringUtils;
 
 @Slf4j
 public class ObjectUtils {
-
     /**
      * Get confirmed appointment.
      * @param appointment {@link Appointment} instance
@@ -24,12 +22,13 @@ public class ObjectUtils {
                                                                  final String emailTemplate) {
         return String.format(emailTemplate,
                 userResponse.getFullName(),
-                appointment.getBranchId(),
+                branchResponse.getName(),
                 appointment.getAppointmentDate(),
                 getAppointmentSlot(appointment),
                 appointment.getReferenceNo(),
                 appointment.getStatus(),
-                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER);
+                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER,
+                appendBranchDetails(branchResponse));
     }
     public static String getAppointmentConfirmedEmailBody(final Appointment appointment,
                                                           final GetUserResponse userResponse,
@@ -37,12 +36,13 @@ public class ObjectUtils {
                                                           final String emailTemplate) {
         return String.format(emailTemplate,
                 userResponse.getFullName(),
-                appointment.getBranchId(),
+                branchResponse.getName(),
                 appointment.getAppointmentDate(),
                 getAppointmentSlot(appointment),
                 appointment.getReferenceNo(),
                 appointment.getStatus(),
-                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER);
+                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER,
+                appendBranchDetails(branchResponse));
     }
     public static String getAppointmentCancelledEmailBody(final Appointment appointment,
                                                           final GetUserResponse userResponse,
@@ -54,7 +54,8 @@ public class ObjectUtils {
                 appointment.getAppointmentDate(),
                 getAppointmentSlot(appointment),
                 appointment.getDescription(),
-                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER);
+                SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER,
+                appendBranchDetails(branchResponse));
     }
     private static String getAppointmentSlot(final Appointment appointment) {
         Slot appointmentSlot = appointment.getSlot();
@@ -76,11 +77,5 @@ public class ObjectUtils {
                 response.getEmailAddress(),
                 response.getLandLine(),
                 response.getFaxNumber());
-    }
-    private static String returnEmptyStringIfNull(final String stringValue) {
-        if(StringUtils.hasText(stringValue)) {
-            return stringValue;
-        }
-        return "";
     }
 }
