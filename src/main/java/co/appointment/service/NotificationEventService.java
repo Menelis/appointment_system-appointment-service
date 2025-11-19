@@ -76,13 +76,13 @@ public class NotificationEventService {
         return switch (appointment.getStatus().toUpperCase()) {
             case AppointmentStatus.BOOKING_PENDING_CONFIRMATION ->
                 new AbstractMap.SimpleImmutableEntry<>(ObjectUtils.getAppointmentPendingConfirmedEmailBody(
-                        appointment, userResponse, branchResponse, emailTemplate.getPendingConfirmationEmailTemplate()), BOOKING_PENDING_CONFIRM_HEADER);
+                        appointment, userResponse, branchResponse, emailTemplate.getPendingConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
             case AppointmentStatus.BOOKING_CONFIRMED ->
-                new AbstractMap.SimpleImmutableEntry<>(
-                        ObjectUtils.getAppointmentConfirmedEmailBody(appointment, userResponse, branchResponse, emailTemplate.getConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
+                new AbstractMap.SimpleImmutableEntry<>(ObjectUtils.getAppointmentConfirmedEmailBody(
+                        appointment, userResponse, branchResponse, emailTemplate.getConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
             case AppointmentStatus.BOOKING_CANCELLED ->
-                new AbstractMap.SimpleImmutableEntry<>(
-                        ObjectUtils.getAppointmentCancelledEmailBody(appointment, userResponse, branchResponse, emailTemplate.getCancellationEmailTemplate()), BOOKING_CANCELLED_HEADER);
+                new AbstractMap.SimpleImmutableEntry<>(ObjectUtils.getAppointmentCancelledEmailBody(
+                        appointment, userResponse, branchResponse, emailTemplate.getCancellationEmailTemplate()), BOOKING_CANCELLED_HEADER);
             default -> throw new IllegalArgumentException("Invalid status " + appointment.getStatus());
         };
     }
