@@ -10,9 +10,11 @@ import org.mapstruct.MappingConstants;
 
 @Mapper(
         componentModel = MappingConstants.ComponentModel.SPRING,
-uses = SlotMapper.class)
+uses = { SlotMapper.class, UserMapper.class, BranchMapper.class })
 public interface AppointmentToDTOMapper {
 
+    @Mapping(source = "customerId", target = "user")
+    @Mapping(source = "branchId", target = "branch")
     AppointmentDTO toDTO(Appointment appointment);
 
     @Mapping(target = "slot", source = "slotId")

@@ -27,14 +27,14 @@ public class AppointmentControllerV1 {
 
     private final AppointmentService appointmentService;
 
-    @GetMapping("/admin/appointments")
+    @GetMapping("/admin/get-all-appointments")
     public ResponseEntity<ApiResponse<Page<AppointmentDTO>>> getAllAppointments(
                                                                                 @RequestParam(name = SharedConstants.PAGE_NUMBER_PARAMETER_NAME, defaultValue = SharedConstants.PAGE_NUMBER_DEFAULT_VALUE) final int pageNumber,
                                                                                 @RequestParam(name = SharedConstants.PAGE_SIZE_PARAMETER_NAME, defaultValue = SharedConstants.PAGE_SIZE_DEFAULT_VALUE) final int pageSize) {
         Page<AppointmentDTO> pagedAppointments = appointmentService.getAllAppointments(pageNumber, pageSize);
         return ResponseEntity.ok(new ApiResponse<>(pagedAppointments));
     }
-    @GetMapping("/customer/listAll")
+    @GetMapping("/customer/get-all-appointments")
     public ResponseEntity<ApiResponse<Page<AppointmentDTO>>> getCustomerAppointments(
             @RequestParam(name = SharedConstants.PAGE_NUMBER_PARAMETER_NAME, defaultValue = SharedConstants.PAGE_NUMBER_DEFAULT_VALUE) final int pageNumber,
             @RequestParam(name = SharedConstants.PAGE_SIZE_PARAMETER_NAME, defaultValue = SharedConstants.PAGE_SIZE_DEFAULT_VALUE) final int pageSize) {
