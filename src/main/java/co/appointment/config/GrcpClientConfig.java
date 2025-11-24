@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class GrcpClientConfig {
 
-    @GrpcClient("user-service")
+    @GrpcClient("auth-service")
     AuthServiceGrpc.AuthServiceBlockingStub authServiceBlockingStub;
 
     @Bean
