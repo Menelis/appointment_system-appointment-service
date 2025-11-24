@@ -36,7 +36,7 @@ public class AppointmentService {
     private final AuthenticationFacade authenticationFacade;
 
     public Page<AppointmentDTO> getAllAppointments(final int pageNo, final int pageSize) {
-        Page<Appointment> appointments = appointmentRepository.findAll(SharedObjectUtils.getPageable(pageNo, pageSize));
+        Page<Appointment> appointments = appointmentRepository.findAll(SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt")));
 
         List<AppointmentDTO> content = appointments.stream()
                 .map(appointmentToDTOMapper::toDTO)
@@ -47,7 +47,7 @@ public class AppointmentService {
     public Page<AppointmentDTO> getAppointmentsByCustomer(final int pageNo, final int pageSize) {
         Page<Appointment> pagedAppointments = appointmentRepository.findAllByCustomerId(
                 authenticationFacade.getUserId(),
-                SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by("createdAt").descending())
+                SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC,"createdAt"))
         );
         List<AppointmentDTO> content = pagedAppointments.stream()
                 .map(appointmentToDTOMapper::toDTO)
@@ -128,11 +128,11 @@ public class AppointmentService {
         appointment.setUpdatedAt(LocalDateTime.now());
         appointment.setUpdatedBy(authenticationFacade.getUserId());
         appointment.setStatus(request.getStatus().toUpperCase());
+        appointment.setCancellationReason(request.getReason());
         appointmentRepository.save(appointment);
 
         // Send notification about appointment status
         if(statusChanged) {
-            appointment.setDescription(request.getReason());
             notificationEventService.publishAppointmentEvent(appointment);
         }
         return ResponseEntity.ok(new ApiResponse<>(true, "Appointment has been updated successfully"));
