@@ -52,4 +52,7 @@ public class Appointment extends BaseEntity {
 
     @Column(name = "updated_by")
     private UUID updatedBy;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
 }
