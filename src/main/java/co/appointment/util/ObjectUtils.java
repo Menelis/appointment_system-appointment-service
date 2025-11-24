@@ -53,7 +53,7 @@ public class ObjectUtils {
                 branchResponse.getName(),
                 appointment.getAppointmentDate(),
                 getAppointmentSlot(appointment),
-                appointment.getDescription(),
+                appointment.getCancellationReason(),
                 SharedConstants.APPOINTMENT_SYSTEM_EMAIL_FOOTER,
                 appendBranchDetails(branchResponse));
     }
