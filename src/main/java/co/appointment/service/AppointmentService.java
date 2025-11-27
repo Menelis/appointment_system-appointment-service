@@ -76,6 +76,10 @@ public class AppointmentService {
                 .toList();
         return new PageImpl<>(content, pagedAppointments.getPageable(), pagedAppointments.getTotalElements());
     }
+    public boolean activeCustomerAppointmentExists(final NewAppointmentRequest newAppointmentRequest) {
+        return appointmentRepository.activeCustomerAppointmentExists(
+                authenticationFacade.getUserId(), newAppointmentRequest.getAppointmentDate(), AppointmentStatus.BOOKING_CANCELLED);
+    }
     public AppointmentDTO createAppointment(final NewAppointmentRequest request) {
         final String referenceNo = UUID.randomUUID().toString();
         Appointment appointment = appointmentToDTOMapper.toEntity(request);

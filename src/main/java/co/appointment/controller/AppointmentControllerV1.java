@@ -10,6 +10,8 @@ import co.appointment.shared.payload.response.ApiResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -60,6 +62,10 @@ public class AppointmentControllerV1 {
     }
     @PostMapping("/create")
     public ResponseEntity<ApiResponse<AppointmentDTO>> createAppointment(@RequestBody @Valid final NewAppointmentRequest request) {
+        boolean activeCustomerBookingExists = appointmentService.activeCustomerAppointmentExists(request);
+        if(activeCustomerBookingExists) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiResponse<>(false, String.format("There is an already active appointment for date: %s. Only one booking can be made on the date.", request.getAppointmentDate())));
+        }
         AppointmentDTO appointment = appointmentService.createAppointment(request);
         if(appointment == null) {
             return ResponseEntity.badRequest().build();
