@@ -8,6 +8,7 @@ import co.appointment.payload.requests.NewAppointmentRequest;
 import co.appointment.payload.requests.UpdateAppointmentRequest;
 import co.appointment.payload.requests.UpdateAppointmentStatusRequest;
 import co.appointment.repository.AppointmentRepository;
+import co.appointment.repository.specification.AppointmentSpecifications;
 import co.appointment.shared.payload.response.ApiResponse;
 import co.appointment.shared.security.service.AuthenticationFacade;
 import co.appointment.shared.util.SharedObjectUtils;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -36,20 +38,22 @@ public class AppointmentService {
     private final AuthenticationFacade authenticationFacade;
 
     public Page<AppointmentDTO> getAllAppointments(final int pageNo, final int pageSize) {
-        Page<Appointment> appointments = appointmentRepository.findAll(SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt")));
+        final Specification<Appointment> specification = AppointmentSpecifications.notEqualToStatus(AppointmentStatus.BOOKING_CANCELLED);
+        final Page<Appointment> appointments = appointmentRepository.findAll(
+                specification, SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt")));
 
-        List<AppointmentDTO> content = appointments.stream()
+        final List<AppointmentDTO> content = appointments.stream()
                 .map(appointmentToDTOMapper::toDTO)
                 .toList();
 
         return new PageImpl<>(content, appointments.getPageable(), appointments.getTotalElements());
     }
     public Page<AppointmentDTO> getAppointmentsByCustomer(final int pageNo, final int pageSize) {
-        Page<Appointment> pagedAppointments = appointmentRepository.findAllByCustomerId(
+        final Page<Appointment> pagedAppointments = appointmentRepository.findAllByCustomerId(
                 authenticationFacade.getUserId(),
                 SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC,"createdAt"))
         );
-        List<AppointmentDTO> content = pagedAppointments.stream()
+        final List<AppointmentDTO> content = pagedAppointments.stream()
                 .map(appointmentToDTOMapper::toDTO)
                 .toList();
         return new PageImpl<>(content, pagedAppointments.getPageable(), pagedAppointments.getTotalElements());
