@@ -19,6 +19,7 @@ public class BranchMapper {
         if(response == null) {
             return null;
         }
-        return new BranchRecord(response.getName());
+        return new BranchRecord(
+                response.getName(), response.getStreetNo(), response.getAddressLine1(), response.getEmailAddress(), response.getLandLine());
     }
 }
