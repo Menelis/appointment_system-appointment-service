@@ -1,7 +1,7 @@
 package co.appointment.mapper;
 
-import co.appointment.grpc.GetBranchResponse;
-import co.appointment.record.BranchRecord;
+
+import co.appointment.shared.record.BranchRecord;
 import co.appointment.shared.service.GrcpBranchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -15,11 +15,6 @@ public class BranchMapper {
         if(id == null) {
             return null;
         }
-        GetBranchResponse response = grcpBranchService.getBranchById(id);
-        if(response == null) {
-            return null;
-        }
-        return new BranchRecord(
-                response.getName(), response.getStreetNo(), response.getAddressLine1(), response.getEmailAddress(), response.getLandLine());
+        return grcpBranchService.getBranchById(id);
     }
 }

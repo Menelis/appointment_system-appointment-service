@@ -1,7 +1,6 @@
 package co.appointment.mapper;
 
-import co.appointment.grpc.GetUserResponse;
-import co.appointment.record.UserRecord;
+import co.appointment.shared.record.UserRecord;
 import co.appointment.shared.service.GrcpAuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,10 +16,6 @@ public class UserMapper {
         if(id == null) {
             return null;
         }
-        GetUserResponse user = grcpAuthService.getUserById(id);
-        if(user == null) {
-            return null;
-        }
-        return new UserRecord(user.getFullName());
+        return grcpAuthService.getUserById(id);
     }
 }

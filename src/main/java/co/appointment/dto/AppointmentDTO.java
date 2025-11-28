@@ -1,7 +1,7 @@
 package co.appointment.dto;
 
-import co.appointment.record.BranchRecord;
-import co.appointment.record.UserRecord;
+import co.appointment.shared.record.BranchRecord;
+import co.appointment.shared.record.UserRecord;
 import lombok.Data;
 
 import java.util.Date;

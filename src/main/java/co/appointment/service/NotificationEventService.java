@@ -7,6 +7,8 @@ import co.appointment.grpc.GetBranchResponse;
 import co.appointment.grpc.GetUserResponse;
 import co.appointment.shared.constant.EventTypeConstants;
 import co.appointment.shared.kafka.event.EmailEvent;
+import co.appointment.shared.record.BranchRecord;
+import co.appointment.shared.record.UserRecord;
 import co.appointment.shared.service.GrcpAuthService;
 import co.appointment.shared.service.GrcpBranchService;
 import co.appointment.shared.util.KafkaUtils;
@@ -53,36 +55,33 @@ public class NotificationEventService {
         this.emailTemplate = appConfigProperties.getEmailTemplate();
     }
     public void publishAppointmentEvent(final Appointment appointment) {
-        GetUserResponse userResponse = grcpAuthService.getUserById(appointment.getCustomerId());
-        GetBranchResponse branchResponse = grcpBranchService.getBranchById(appointment.getBranchId());
+        UserRecord userResponse = grcpAuthService.getUserById(appointment.getCustomerId());
+        BranchRecord branchResponse = grcpBranchService.getBranchById(appointment.getBranchId());
 
         if(userResponse == null) {
-            log.info("Could not sent notification for appointment Id: {} because the user response is null", appointment.getId());
-            return;
+            throw new IllegalArgumentException(String.format("Could not sent notification for appointment Id: %s because the user response is null", appointment.getId()));
         }
         if(branchResponse == null) {
-            log.info("Could not sent notification for appointment Id: {} because the branch response is null", appointment.getId());
-            return;
+            throw new NullPointerException(String.format("Could not sent notification for appointment Id: %s because the branch response is null", appointment.getId()));
         }
-
         AbstractMap.SimpleImmutableEntry<String, Map<String, Object>> emailBodyWithEventHeaders = getEmailBodyWithEventHeaders(appointment, userResponse, branchResponse);
         EmailEvent emailEvent = new EmailEvent(
-                userResponse.getEmail(), String.format("Booking - %s", appointment.getReferenceNo()), emailBodyWithEventHeaders.getKey(), false);
+                userResponse.email(), String.format("Booking - %s", appointment.getReferenceNo()), emailBodyWithEventHeaders.getKey(), false);
         KafkaUtils.sendKafkaEvent(kafkaTemplate, notificationTopic, null, emailEvent, emailBodyWithEventHeaders.getValue());
     }
     private AbstractMap.SimpleImmutableEntry<String, Map<String, Object>> getEmailBodyWithEventHeaders(
-            final Appointment appointment, final GetUserResponse userResponse, final GetBranchResponse branchResponse) {
+            final Appointment appointment, final UserRecord userRecord, final BranchRecord branchRecord) {
 
         return switch (appointment.getStatus().toUpperCase()) {
             case AppointmentStatus.BOOKING_PENDING_CONFIRMATION ->
                 new AbstractMap.SimpleImmutableEntry<>(ObjectUtils.getAppointmentPendingConfirmedEmailBody(
-                        appointment, userResponse, branchResponse, emailTemplate.getPendingConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
+                        appointment, userRecord, branchRecord, emailTemplate.getPendingConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
             case AppointmentStatus.BOOKING_CONFIRMED ->
                 new AbstractMap.SimpleImmutableEntry<>(ObjectUtils.getAppointmentConfirmedEmailBody(
-                        appointment, userResponse, branchResponse, emailTemplate.getConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
+                        appointment, userRecord, branchRecord, emailTemplate.getConfirmationEmailTemplate()), BOOKING_CONFIRMED_HEADER);
             case AppointmentStatus.BOOKING_CANCELLED ->
                 new AbstractMap.SimpleImmutableEntry<>(ObjectUtils.getAppointmentCancelledEmailBody(
-                        appointment, userResponse, branchResponse, emailTemplate.getCancellationEmailTemplate()), BOOKING_CANCELLED_HEADER);
+                        appointment, userRecord, branchRecord, emailTemplate.getCancellationEmailTemplate()), BOOKING_CANCELLED_HEADER);
             default -> throw new IllegalArgumentException("Invalid status " + appointment.getStatus());
         };
     }
