@@ -9,6 +9,14 @@
 - The appointment service act as the client([gRPC](https://grpc.io/) protocol) in receiving data from the following services:
   - Auth Service - To request user details for sending notifications about the appointments.
   - Branch Service - To add branch details to email notification about booking.
+    
+## Existing public Docker Image
+- There is an already existing public image you can use without building the new one if you not making code changes:
+  - Image - ```docker.io/menelismthembu12/appointment-service:1.0.2```
+  - Tag - ```1.0.2```
+- The service allows config to be externalized using config-server.
+
+Config
 ```yaml
 infrastructure:
   env: local
