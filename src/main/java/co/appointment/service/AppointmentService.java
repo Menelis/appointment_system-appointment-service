@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
@@ -37,10 +38,17 @@ public class AppointmentService {
     private final NotificationEventService notificationEventService;
     private final AuthenticationFacade authenticationFacade;
 
-    public Page<AppointmentDTO> getAllAppointments(final int pageNo, final int pageSize) {
+    private Page<Appointment> getSearchedOrUnSearchedAppointments(final int pageNo, final int pageSize, final String searchTerm) {
+        Pageable pageable = SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
         final Specification<Appointment> specification = AppointmentSpecifications.notEqualToStatus(AppointmentStatus.BOOKING_CANCELLED);
-        final Page<Appointment> appointments = appointmentRepository.findAll(
-                specification, SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt")));
+        if(!StringUtils.hasText(searchTerm)) {
+            return appointmentRepository.findAll(specification ,pageable);
+        }
+        specification.and(AppointmentSpecifications.referenceNoContains(searchTerm));
+        return appointmentRepository.findAll(specification ,pageable);
+    }
+    public Page<AppointmentDTO> getAllAppointments(final int pageNo, final int pageSize, final String searchTerm) {
+        final Page<Appointment> appointments = getSearchedOrUnSearchedAppointments(pageNo, pageSize, searchTerm);
 
         final List<AppointmentDTO> content = appointments.stream()
                 .map(appointmentToDTOMapper::toDTO)
@@ -48,11 +56,20 @@ public class AppointmentService {
 
         return new PageImpl<>(content, appointments.getPageable(), appointments.getTotalElements());
     }
-    public Page<AppointmentDTO> getAppointmentsByCustomer(final int pageNo, final int pageSize) {
-        final Page<Appointment> pagedAppointments = appointmentRepository.findAllByCustomerId(
-                authenticationFacade.getUserId(),
-                SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC,"createdAt"))
-        );
+    private Page<Appointment> getSearchedOrUnSearchedCustomerAppointments(final int pageNo, final int pageSize, final String searchTerm) {
+        Pageable pageable = SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC,"createdAt"));
+        if(!StringUtils.hasText(searchTerm)) {
+            return appointmentRepository.findAll(
+                    AppointmentSpecifications.equalsCustomerId(authenticationFacade.getUserId()) ,pageable);
+        }
+        final Specification<Appointment> appointmentSpecification = AppointmentSpecifications.equalsCustomerId(authenticationFacade.getUserId())
+                .and(AppointmentSpecifications.referenceNoContains(searchTerm));
+        return appointmentRepository.findAll(appointmentSpecification ,pageable);
+    }
+    public Page<AppointmentDTO> getAppointmentsByCustomer(final int pageNo, final int pageSize,
+                                                          final String searchTerm) {
+        final Page<Appointment> pagedAppointments = getSearchedOrUnSearchedCustomerAppointments(pageNo, pageSize, searchTerm);
+
         final List<AppointmentDTO> content = pagedAppointments.stream()
                 .map(appointmentToDTOMapper::toDTO)
                 .toList();
