@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>co.appointment</groupId>
 	<artifactId>appointment-service</artifactId>
-	<version>1.1.0</version>
+	<version>1.1.1</version>
 	<name>appointment-service</name>
 	<description>Appointment Service</description>
 	<url/>
@@ -29,7 +29,7 @@
 	<properties>
 		<java.version>25</java.version>
 		<spring-cloud.version>2025.0.0</spring-cloud.version>
-		<appointment-shared.version>1.0.0</appointment-shared.version>
+		<appointment-shared.version>1.0.1</appointment-shared.version>
 		<springdoc-openapi-starter-webmvc-ui.version>2.8.13</springdoc-openapi-starter-webmvc-ui.version>
 		<lombok.version>1.18.42</lombok.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
