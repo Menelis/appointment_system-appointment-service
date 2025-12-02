@@ -9,7 +9,103 @@
 - The appointment service act as the client([gRPC](https://grpc.io/) protocol) in receiving data from the following services:
   - Auth Service - To request user details for sending notifications about the appointments.
   - Branch Service - To add branch details to email notification about booking.
-    
+- For testing scheduling an appointment the following Province and cities are loaded the admin just need to create one branch for testing:
+```json
+[
+  [
+    {
+      "name": "Western Cape",
+      "cities": [
+        {
+          "name": "Cape Town"
+        },
+        {
+          "name": "Stellenbosch"
+        },
+        {
+          "name": "George"
+        },
+        {
+          "name": "Paarl"
+        }
+      ]
+    },
+    {
+      "name": "KwaZulu-Natal",
+      "cities": [
+        {
+          "name": "Durban"
+        },
+        {
+          "name": "Pietermaritzburg"
+        }
+      ]
+    },
+    {
+      "name": "Eastern Cape",
+      "cities": [
+        {
+          "name": "Bhisho"
+        },
+        {
+          "name": "Gqeberha"
+        },
+        {
+          "name": "East London"
+        }
+      ]
+    },
+    {
+      "name": "Free State",
+      "cities": [
+        {
+          "name": "Bloemfontein"
+        }
+      ]
+    },
+    {
+      "name": "Gauteng",
+      "cities": [
+        {
+          "name": "Johannesburg"
+        }
+      ]
+    },
+    {
+      "name": "Limpopo",
+      "cities": [
+        {
+          "name": "Polokwane"
+        }
+      ]
+    },
+    {
+      "name": "Mpumalanga",
+      "cities": [
+        {
+          "name": "Mbombela"
+        }
+      ]
+    },
+    {
+      "name": "Northern Cape",
+      "cities": [
+        {
+          "name": "Kimberley"
+        }
+      ]
+    },
+    {
+      "name": "North West",
+      "cities": [
+        {
+          "name": "Mahikeng"
+        }
+      ]
+    }
+  ]
+]
+```
 ## Existing public Docker Image
 - There is an already existing public image you can use without building the new one if you not making code changes:
   - Image - ```docker.io/menelismthembu12/appointment-service```
