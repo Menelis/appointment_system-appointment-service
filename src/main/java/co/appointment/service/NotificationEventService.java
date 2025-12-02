@@ -3,10 +3,9 @@ package co.appointment.service;
 import co.appointment.config.AppConfigProperties;
 import co.appointment.constant.AppointmentStatus;
 import co.appointment.entity.Appointment;
-import co.appointment.grpc.GetBranchResponse;
-import co.appointment.grpc.GetUserResponse;
 import co.appointment.shared.constant.EventTypeConstants;
-import co.appointment.shared.kafka.event.EmailEvent;
+import co.appointment.shared.event.EmailEvent;
+import co.appointment.shared.event.kafka.KafkaNotificationEvent;
 import co.appointment.shared.record.BranchRecord;
 import co.appointment.shared.record.UserRecord;
 import co.appointment.shared.service.GrcpAuthService;
@@ -36,9 +35,6 @@ public class NotificationEventService {
     private static final Map<String, Object> BOOKING_CONFIRMED_HEADER = Map.of(
             EventTypeConstants.EVENT_TYPE,
             EventTypeConstants.BOOKING_CONFIRMED_EVENT);
-    private static final Map<String, Object> BOOKING_PENDING_CONFIRM_HEADER = Map.of(
-            EventTypeConstants.EVENT_TYPE,
-            EventTypeConstants.BOOKING_PENDING_CONFIRMED_EVENT);
     private static final Map<String, Object> BOOKING_CANCELLED_HEADER = Map.of(
             EventTypeConstants.EVENT_TYPE,
             EventTypeConstants.BOOKING_CANCELLED_EVENT);
@@ -66,8 +62,8 @@ public class NotificationEventService {
         }
         AbstractMap.SimpleImmutableEntry<String, Map<String, Object>> emailBodyWithEventHeaders = getEmailBodyWithEventHeaders(appointment, userResponse, branchResponse);
         EmailEvent emailEvent = new EmailEvent(
-                userResponse.email(), String.format("Booking - %s", appointment.getReferenceNo()), emailBodyWithEventHeaders.getKey(), false);
-        KafkaUtils.sendKafkaEvent(kafkaTemplate, notificationTopic, null, emailEvent, emailBodyWithEventHeaders.getValue());
+                userResponse.email(), String.format("Booking - %s", appointment.getReferenceNo()), emailBodyWithEventHeaders.getKey());
+        KafkaUtils.sendKafkaEvent(kafkaTemplate, new KafkaNotificationEvent<>(notificationTopic, emailEvent, emailBodyWithEventHeaders.getValue(), null));
     }
     private AbstractMap.SimpleImmutableEntry<String, Map<String, Object>> getEmailBodyWithEventHeaders(
             final Appointment appointment, final UserRecord userRecord, final BranchRecord branchRecord) {
