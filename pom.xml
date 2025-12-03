@@ -10,7 +10,7 @@
 	</parent>
 	<groupId>co.appointment</groupId>
 	<artifactId>appointment-service</artifactId>
-	<version>1.1.1</version>
+	<version>1.1.2</version>
 	<name>appointment-service</name>
 	<description>Appointment Service</description>
 	<url/>
