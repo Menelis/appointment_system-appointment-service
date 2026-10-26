@@ -6,7 +6,7 @@ import co.appointment.shared.service.GrcpBranchServiceBase;
 
 public class GrcpBranchServiceImpl extends GrcpBranchServiceBase implements GrcpBranchService {
 
-    public GrcpBranchServiceImpl(BranchServiceGrpc.BranchServiceBlockingStub branchServiceBlockingStub) {
+    public GrcpBranchServiceImpl(final BranchServiceGrpc.BranchServiceBlockingStub branchServiceBlockingStub) {
         super(branchServiceBlockingStub);
     }
 }

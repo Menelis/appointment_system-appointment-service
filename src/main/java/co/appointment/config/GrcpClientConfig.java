@@ -13,19 +13,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class GrcpClientConfig {
 
-    @GrpcClient("auth-service")
-    AuthServiceGrpc.AuthServiceBlockingStub authServiceBlockingStub;
-
     @Bean
-    public GrcpAuthService grcpAuthService() {
+    public GrcpAuthService grcpAuthService(
+            @GrpcClient("auth-service") final AuthServiceGrpc.AuthServiceBlockingStub authServiceBlockingStub) {
         return new GrcpAuthServiceImpl(authServiceBlockingStub);
     }
 
-    @GrpcClient("branch-service")
-    BranchServiceGrpc.BranchServiceBlockingStub branchServiceBlockingStub;
-
     @Bean
-    public GrcpBranchService grcpBranchService() {
+    public GrcpBranchService grcpBranchService(
+            @GrpcClient("branch-service") final BranchServiceGrpc.BranchServiceBlockingStub branchServiceBlockingStub) {
         return new GrcpBranchServiceImpl(branchServiceBlockingStub);
     }
 }

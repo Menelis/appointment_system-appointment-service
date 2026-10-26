@@ -1,15 +1,13 @@
-package co.appointment.controller;
+package co.appointment.controller.v1;
 
 import co.appointment.dto.SlotDTO;
 import co.appointment.service.SlotService;
-import co.appointment.shared.payload.response.ApiResponse;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,7 +16,7 @@ public class SlotControllerV1 {
     private final SlotService slotService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<SlotDTO>>> getSlots() {
-        return ResponseEntity.ok(new ApiResponse<>(slotService.getAllSlot()));
+    public ResponseEntity<List<SlotDTO>> getSlots() {
+        return ResponseEntity.ok(slotService.getAllSlot());
     }
 }

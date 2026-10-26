@@ -1,20 +1,11 @@
 package co.appointment.mapper;
 
-import co.appointment.entity.Slot;
-import co.appointment.repository.SlotRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
+import co.appointment.dto.SlotDTO;
+import co.appointment.persistence.SlotEntity;
+import org.mapstruct.Mapper;
+import org.mapstruct.MappingConstants;
 
-@Component
-@RequiredArgsConstructor
-public class SlotMapper {
-
-    private final SlotRepository slotRepository;
-
-    public Slot fromId(final Integer id) {
-        if(id == null) {
-            return null;
-        }
-        return slotRepository.findById(id).orElse(null);
-    }
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
+public interface SlotMapper {
+    SlotDTO toDTO(SlotEntity slot);
 }

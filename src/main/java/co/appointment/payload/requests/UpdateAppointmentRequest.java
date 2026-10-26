@@ -1,8 +1,7 @@
 package co.appointment.payload.requests;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.util.UUID;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -10,10 +9,8 @@ import lombok.EqualsAndHashCode;
 @Data
 public class UpdateAppointmentRequest extends NewAppointmentRequest {
 
-    @NotEmpty(message = "Appointment Id cannot not be empty")
-    @NotBlank(message = "Appointment Id cannot be blank")
     @NotNull(message = "Appointment Id cannot be null")
-    private Long id;
+    private UUID id;
 
     private String status;
 }

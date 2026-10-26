@@ -20,6 +20,7 @@ public class AppConfigProperties {
     public static class KafkaSettings {
         private String notificationTopic;
     }
+
     @Data
     public static class EmailTemplate {
         private String pendingConfirmationEmailTemplate;

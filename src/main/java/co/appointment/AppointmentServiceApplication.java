@@ -9,13 +9,13 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 
 @SpringBootApplication
-@EnableConfigurationProperties({ AppConfigProperties.class })
+@EnableConfigurationProperties({AppConfigProperties.class})
 @ComponentScan(
-		excludeFilters = { @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = EncryptionService.class)})
+        excludeFilters = {@ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE, classes = EncryptionService.class)})
+@SuppressWarnings({"HideUtilityClassConstructor"})
 public class AppointmentServiceApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(AppointmentServiceApplication.class, args);
-	}
-
+    public static void main(final String[] args) {
+        SpringApplication.run(AppointmentServiceApplication.class, args);
+    }
 }

@@ -1,24 +1,23 @@
 package co.appointment.service;
 
 import co.appointment.dto.SlotDTO;
-import co.appointment.mapper.SlotToDTOMapper;
-import co.appointment.repository.SlotRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-
+import co.appointment.mapper.SlotMapper;
+import co.appointment.persistence.SlotRepository;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class SlotService {
 
     private final SlotRepository slotRepository;
-    private final SlotToDTOMapper slotToDTOMapper;
+    private final SlotMapper slotMapper;
 
     public List<SlotDTO> getAllSlot() {
-        return slotRepository.findAll()
-                .stream()
-                .map(slotToDTOMapper::toDTO)
+        return slotRepository.findAll(Sort.by(Sort.Direction.ASC, "slotStart")).stream()
+                .map(slotMapper::toDTO)
                 .toList();
     }
 }
