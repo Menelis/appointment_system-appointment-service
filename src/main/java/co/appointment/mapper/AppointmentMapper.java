@@ -5,20 +5,22 @@ import co.appointment.payload.requests.NewAppointmentRequest;
 import co.appointment.payload.requests.UpdateAppointmentRequest;
 import co.appointment.persistence.AppointmentEntity;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
 
 @Mapper(
         componentModel = MappingConstants.ComponentModel.SPRING,
         uses = {MapperHelper.class})
 public interface AppointmentMapper {
 
-    // @Mapping(source = "customerId", target = "user")
-    // @Mapping(source = "branchId", target = "branch")
     AppointmentDTO toDTO(AppointmentEntity appointment);
 
-    // @Mapping(target = "slot", source = "slotId")
     AppointmentEntity toEntity(NewAppointmentRequest request);
 
-    // @Mapping(target = "slot", source = "slotId")
-    AppointmentEntity toEntity(UpdateAppointmentRequest request);
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    void toEntity(UpdateAppointmentRequest request, @MappingTarget AppointmentEntity appointment);
 }

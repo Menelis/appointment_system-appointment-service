@@ -1,7 +1,16 @@
 package co.appointment.service;
 
+import static co.appointment.constant.AppointmentStatus.BOOKING_CONFIRMED;
+import static co.appointment.constant.AppointmentStatus.BOOKING_PENDING_CONFIRMATION;
+import static co.appointment.shared.constant.EventTypeConstants.BOOKING_CANCELLED_EVENT;
+import static co.appointment.shared.constant.EventTypeConstants.BOOKING_CONFIRMED_EVENT;
+import static co.appointment.shared.constant.EventTypeConstants.BOOKING_PENDING_CONFIRMATION_EVENT;
+
+import co.appointment.config.AppConfigProperties;
 import co.appointment.constant.AppointmentStatus;
 import co.appointment.dto.AppointmentDTO;
+import co.appointment.kafka.KafkaProducerService;
+import co.appointment.kafka.event.AppointmentEvent;
 import co.appointment.mapper.AppointmentMapper;
 import co.appointment.payload.requests.NewAppointmentRequest;
 import co.appointment.payload.requests.UpdateAppointmentRequest;
@@ -9,10 +18,12 @@ import co.appointment.payload.requests.UpdateAppointmentStatusRequest;
 import co.appointment.persistence.AppointmentEntity;
 import co.appointment.persistence.AppointmentRepository;
 import co.appointment.shared.dto.ServiceResponseDto;
+import co.appointment.shared.event.DomainEventMessage;
 import co.appointment.shared.exception.ServiceException;
 import co.appointment.shared.security.service.AuthenticationFacade;
 import co.appointment.shared.util.SharedObjectUtils;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -32,8 +43,9 @@ public class AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentMapper appointmentMapper;
-    private final NotificationEventService notificationEventService;
     private final AuthenticationFacade authenticationFacade;
+    private final AppConfigProperties configProperties;
+    private final KafkaProducerService kafkaProducerService;
 
     private Page<AppointmentEntity> getSearchedOrUnSearchedAppointments(
             final int pageNo, final int pageSize, final String searchTerm) {
@@ -87,7 +99,6 @@ public class AppointmentService {
                 referenceNo,
                 SharedObjectUtils.getPageable(
                         pageNo, pageSize, Sort.by("createdAt").descending()));
-        log.info("Content is: {}", pagedAppointments.getContent());
         List<AppointmentDTO> content =
                 pagedAppointments.stream().map(appointmentMapper::toDTO).toList();
         return new PageImpl<>(content, pagedAppointments.getPageable(), pagedAppointments.getTotalElements());
@@ -116,14 +127,22 @@ public class AppointmentService {
         }
         final String referenceNo = UUID.randomUUID().toString();
         AppointmentEntity appointment = appointmentMapper.toEntity(request);
-        appointment.setStatus(AppointmentStatus.BOOKING_PENDING_CONFIRMATION);
+        appointment.setStatus(BOOKING_PENDING_CONFIRMATION);
         appointment.setCustomerId(authenticationFacade.getUserId());
         appointment.setReferenceNo(referenceNo);
 
         appointmentRepository.save(appointment);
 
         // Publish event for confirmed email
-        // notificationEventService.publishAppointmentEvent(savedAppointment);
+        publishEvent(
+                getDomainEventMessage(
+                        AppointmentEvent.builder()
+                                .referenceNo(referenceNo)
+                                .eventId(UUID.randomUUID())
+                                .build(),
+                        xCorrelationId,
+                        BOOKING_PENDING_CONFIRMATION),
+                Map.of());
         return Optional.of(ServiceResponseDto.builder()
                 .success(true)
                 .correlationId(xCorrelationId)
@@ -131,42 +150,52 @@ public class AppointmentService {
                 .build());
     }
 
-    public AppointmentDTO createAppointment(final NewAppointmentRequest request) {
-        final String referenceNo = UUID.randomUUID().toString();
-        AppointmentEntity appointment = appointmentMapper.toEntity(request);
-        appointment.setStatus(AppointmentStatus.BOOKING_PENDING_CONFIRMATION);
-        appointment.setCustomerId(authenticationFacade.getUserId());
-        appointment.setReferenceNo(referenceNo);
-        AppointmentEntity savedAppointment = appointmentRepository.save(appointment);
-        // Publish event for confirmed email
-        // notificationEventService.publishAppointmentEvent(savedAppointment);
-        return appointmentMapper.toDTO(savedAppointment);
+    void publishEvent(
+            final DomainEventMessage<AppointmentEvent> domainEventMessage, final Map<String, Object> headers) {
+        kafkaProducerService.publish(
+                configProperties.getKafka().getTopic().getOutgoing().getNotification(), domainEventMessage, headers);
+    }
+
+    private DomainEventMessage<AppointmentEvent> getDomainEventMessage(
+            final AppointmentEvent appointmentEvent, final UUID xCorrelationId, final String status) {
+        final String eventType = switch (status) {
+            case BOOKING_PENDING_CONFIRMATION -> BOOKING_PENDING_CONFIRMATION_EVENT;
+            case BOOKING_CONFIRMED -> BOOKING_CONFIRMED_EVENT;
+            default -> BOOKING_CANCELLED_EVENT;
+        };
+        return DomainEventMessage.<AppointmentEvent>builder()
+                .event(appointmentEvent)
+                .correlationId(xCorrelationId.toString())
+                .eventType(eventType)
+                .build();
     }
 
     public Optional<ServiceResponseDto> updateAppointment(
             final UpdateAppointmentRequest request, final UUID xCorrelationId) {
-        Optional<AppointmentEntity> optionalAppointment = appointmentRepository.findById(request.getId());
-        if (optionalAppointment.isEmpty()) {
-            throw new ServiceException(HttpStatus.NO_CONTENT);
-        }
+        AppointmentEntity appointment = appointmentRepository
+                .findById(request.getId())
+                .orElseThrow(() -> new ServiceException(HttpStatus.NO_CONTENT));
 
-        boolean statusChanged =
-                appointmentStatusChanged(optionalAppointment.get().getStatus(), request.getStatus());
+        boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
 
-        String status = getStatus(request.getStatus(), optionalAppointment.get().getStatus())
-                .toUpperCase();
-        AppointmentEntity appointment = appointmentMapper.toEntity(request);
-        AppointmentEntity dbAppointment = optionalAppointment.get();
+        String status = getStatus(request.getStatus(), appointment.getStatus()).toUpperCase();
+        appointmentMapper.toEntity(request, appointment);
 
-        // SharedObjectUtils.mapAuditFields(appointment, dbAppointment);
         appointment.setUpdatedBy(authenticationFacade.getUserId());
         appointment.setStatus(status);
         appointmentRepository.save(appointment);
 
-        //        if (statusChanged) {
-        //            notificationEventService.publishAppointmentEvent(appointment);
-        //        }
-
+        if (statusChanged) {
+            publishEvent(
+                    getDomainEventMessage(
+                            AppointmentEvent.builder()
+                                    .referenceNo(appointment.getReferenceNo())
+                                    .eventId(UUID.randomUUID())
+                                    .build(),
+                            xCorrelationId,
+                            status),
+                    Map.of());
+        }
         return Optional.of(ServiceResponseDto.builder()
                 .success(true)
                 .correlationId(xCorrelationId)
@@ -186,22 +215,28 @@ public class AppointmentService {
 
     public Optional<ServiceResponseDto> updateAppointmentStatus(
             final UpdateAppointmentStatusRequest request, final UUID xCorrelationId) {
-        Optional<AppointmentEntity> optionalAppointment = appointmentRepository.findById(request.getId());
-        if (optionalAppointment.isEmpty()) {
-            throw new ServiceException(HttpStatus.NO_CONTENT);
-        }
-        boolean statusChanged =
-                appointmentStatusChanged(optionalAppointment.get().getStatus(), request.getStatus());
-        final AppointmentEntity appointment = optionalAppointment.get();
+        AppointmentEntity appointment = appointmentRepository
+                .findById(request.getId())
+                .orElseThrow(() -> new ServiceException(HttpStatus.NO_CONTENT));
+
+        boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
+        String status = request.getStatus().toUpperCase();
         appointment.setUpdatedBy(authenticationFacade.getUserId());
-        appointment.setStatus(request.getStatus().toUpperCase());
+        appointment.setStatus(status);
         appointment.setCancellationReason(request.getReason());
         appointmentRepository.save(appointment);
 
-        // Send notification about appointment status
-        //        if (statusChanged) {
-        //            notificationEventService.publishAppointmentEvent(appointment);
-        //        }
+        if (statusChanged) {
+            publishEvent(
+                    getDomainEventMessage(
+                            AppointmentEvent.builder()
+                                    .referenceNo(appointment.getReferenceNo())
+                                    .eventId(UUID.randomUUID())
+                                    .build(),
+                            xCorrelationId,
+                            status),
+                    Map.of());
+        }
         return Optional.of(ServiceResponseDto.builder()
                 .success(true)
                 .correlationId(xCorrelationId)
