@@ -10,21 +10,25 @@ import co.appointment.config.AppConfigProperties;
 import co.appointment.constant.AppointmentStatus;
 import co.appointment.dto.AppointmentDTO;
 import co.appointment.kafka.KafkaProducerService;
-import co.appointment.kafka.event.AppointmentEvent;
 import co.appointment.mapper.AppointmentMapper;
 import co.appointment.payload.requests.NewAppointmentRequest;
 import co.appointment.payload.requests.UpdateAppointmentRequest;
 import co.appointment.payload.requests.UpdateAppointmentStatusRequest;
 import co.appointment.persistence.AppointmentEntity;
 import co.appointment.persistence.AppointmentRepository;
+import co.appointment.shared.constant.RoleConstants;
+import co.appointment.shared.constant.TokenConstants;
 import co.appointment.shared.dto.ServiceResponseDto;
+import co.appointment.shared.event.AppointmentEvent;
 import co.appointment.shared.event.DomainEventMessage;
 import co.appointment.shared.exception.ServiceException;
 import co.appointment.shared.security.service.AuthenticationFacade;
 import co.appointment.shared.util.SharedObjectUtils;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +50,9 @@ public class AppointmentService {
     private final AuthenticationFacade authenticationFacade;
     private final AppConfigProperties configProperties;
     private final KafkaProducerService kafkaProducerService;
+
+    private static final Set<String> ALLOWED_TO_UPDATE_ROLES =
+            Set.of(RoleConstants.ADMIN_ROLE, RoleConstants.TELLER_ROLE);
 
     private Page<AppointmentEntity> getSearchedOrUnSearchedAppointments(
             final int pageNo, final int pageSize, final String searchTerm) {
@@ -176,6 +183,8 @@ public class AppointmentService {
                 .findById(request.getId())
                 .orElseThrow(() -> new ServiceException(HttpStatus.NO_CONTENT));
 
+        validateAllowedToUpdate(appointment);
+
         boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
 
         String status = getStatus(request.getStatus(), appointment.getStatus()).toUpperCase();
@@ -215,9 +224,12 @@ public class AppointmentService {
 
     public Optional<ServiceResponseDto> updateAppointmentStatus(
             final UpdateAppointmentStatusRequest request, final UUID xCorrelationId) {
+
         AppointmentEntity appointment = appointmentRepository
                 .findById(request.getId())
                 .orElseThrow(() -> new ServiceException(HttpStatus.NO_CONTENT));
+
+        validateAllowedToUpdate(appointment);
 
         boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
         String status = request.getStatus().toUpperCase();
@@ -241,5 +253,23 @@ public class AppointmentService {
                 .success(true)
                 .correlationId(xCorrelationId)
                 .build());
+    }
+
+    private void validateAllowedToUpdate(final AppointmentEntity appointment) {
+
+        UUID loggedInUserId = authenticationFacade.getUserId();
+
+        List<String> loggedInUseRoles = authenticationFacade.getClaimAsList(TokenConstants.ROLES);
+
+        if (log.isTraceEnabled()) {
+            log.trace("Current user roles=[{}]", loggedInUseRoles);
+        }
+
+        boolean isOwner = Objects.equals(loggedInUserId, appointment.getCustomerId());
+        boolean hasRequiredRole = loggedInUseRoles.stream().anyMatch(ALLOWED_TO_UPDATE_ROLES::contains);
+
+        if (!hasRequiredRole && !isOwner) {
+            throw new ServiceException(HttpStatus.FORBIDDEN);
+        }
     }
 }
