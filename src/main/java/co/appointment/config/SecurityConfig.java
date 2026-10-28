@@ -26,7 +26,7 @@ public class SecurityConfig {
                         .requestMatchers(appConfigProperties.getWhiteList())
                         .permitAll()
                         .requestMatchers(appConfigProperties.getAdminRoutes())
-                        .hasAnyRole(RoleConstants.ADMIN_ROLE, RoleConstants.USER_ROLE)
+                        .hasAnyRole(RoleConstants.ADMIN_ROLE, RoleConstants.TELLER_ROLE)
                         .anyRequest()
                         .authenticated())
                 .oauth2ResourceServer((oath2) -> oath2.jwt(Customizer.withDefaults()))
