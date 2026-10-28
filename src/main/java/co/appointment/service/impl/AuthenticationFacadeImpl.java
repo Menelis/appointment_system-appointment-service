@@ -2,6 +2,7 @@ package co.appointment.service.impl;
 
 import co.appointment.shared.constant.TokenConstants;
 import co.appointment.shared.security.service.AuthenticationFacade;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,5 +27,16 @@ public class AuthenticationFacadeImpl implements AuthenticationFacade {
         JwtAuthenticationToken jwtAuthenticationToken = (JwtAuthenticationToken) authentication;
         Jwt jwt = jwtAuthenticationToken.getToken();
         return UUID.fromString(jwt.getClaim(TokenConstants.USER_ID));
+    }
+
+    @Override
+    public List<String> getClaimAsList(final String claimName) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
+            return List.of();
+        }
+        JwtAuthenticationToken jwtAuthenticationToken = (JwtAuthenticationToken) authentication;
+        Jwt jwt = jwtAuthenticationToken.getToken();
+        return jwt.getClaimAsStringList(claimName);
     }
 }
