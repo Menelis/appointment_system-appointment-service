@@ -12,18 +12,21 @@ public class AppConfigProperties {
     private String[] whiteList = {};
     private String[] adminRoutes = {};
     private KafkaSettings kafka = new KafkaSettings();
-    private EmailTemplate emailTemplate = new EmailTemplate();
     private String authoritiesClaimName = "roles";
     private String authoritiesClaimPrefix = "ROLE_";
 
     @Data
     public static class KafkaSettings {
-        private String notificationTopic;
+        private TopicConfig topic;
     }
+
     @Data
-    public static class EmailTemplate {
-        private String pendingConfirmationEmailTemplate;
-        private String confirmationEmailTemplate;
-        private String cancellationEmailTemplate;
+    public static class TopicConfig {
+        private Outgoing outgoing;
+    }
+
+    @Data
+    public static class Outgoing {
+        private String notification;
     }
 }

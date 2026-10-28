@@ -1,5 +1,6 @@
 package co.appointment.constant;
 
+@SuppressWarnings({"InterfaceIsType"})
 public interface AppointmentStatus {
     /**
      * Appointment booking confirmed.
