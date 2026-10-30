@@ -32,7 +32,7 @@
         <appointment-shared.version>2.0.0</appointment-shared.version>
         <springdoc-openapi-starter-webmvc-ui.version>2.8.13</springdoc-openapi-starter-webmvc-ui.version>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <grpc-client-spring-boot-starter.version>3.1.0.RELEASE</grpc-client-spring-boot-starter.version>
+        <grpc-client-server.version>3.1.0.RELEASE</grpc-client-server.version>
 
         <!-- Plugins -->
         <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
@@ -128,11 +128,17 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!--Spring Boot gRPC Server-->
+        <dependency>
+            <groupId>net.devh</groupId>
+            <artifactId>grpc-server-spring-boot-starter</artifactId>
+            <version>${grpc-client-server.version}</version>
+        </dependency>
         <!-- Spring Boot gRPC Client -->
         <dependency>
             <groupId>net.devh</groupId>
             <artifactId>grpc-client-spring-boot-starter</artifactId>
-            <version>${grpc-client-spring-boot-starter.version}</version>
+            <version>${grpc-client-server.version}</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
