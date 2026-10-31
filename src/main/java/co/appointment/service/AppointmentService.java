@@ -22,7 +22,7 @@ import co.appointment.shared.dto.ServiceResponseDto;
 import co.appointment.shared.event.AppointmentEvent;
 import co.appointment.shared.event.DomainEventMessage;
 import co.appointment.shared.exception.ServiceException;
-import co.appointment.shared.security.service.AuthenticationFacade;
+import co.appointment.shared.security.AuthenticationFacade;
 import co.appointment.shared.util.SharedObjectUtils;
 import java.util.List;
 import java.util.Map;
@@ -140,7 +140,7 @@ public class AppointmentService {
 
         appointmentRepository.save(appointment);
 
-        // Publish event for confirmed email
+        // Publish event for pending confirmation booking
         publishEvent(
                 getDomainEventMessage(
                         AppointmentEvent.builder()

@@ -14,6 +14,9 @@ import org.mapstruct.MappingTarget;
         uses = {MapperHelper.class})
 public interface AppointmentMapper {
 
+    @Mapping(target = "userSummary", source = "customerId", qualifiedByName = "mapUserSummary")
+    @Mapping(target = "branchSummary", source = "branchId", qualifiedByName = "mapBranchSummary")
+    @Mapping(target = "slot", source = "slotId", qualifiedByName = "mapSlot")
     AppointmentDTO toDTO(AppointmentEntity appointment);
 
     AppointmentEntity toEntity(NewAppointmentRequest request);

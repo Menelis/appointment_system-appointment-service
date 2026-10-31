@@ -1,40 +1,52 @@
 package co.appointment.mapper;
 
-import co.appointment.persistence.SlotEntity;
+import co.appointment.dto.SlotDTO;
 import co.appointment.persistence.SlotRepository;
 import co.appointment.shared.record.BranchSummary;
-import co.appointment.shared.record.UserRecord;
-import co.appointment.shared.service.GrcpAuthService;
-import co.appointment.shared.service.GrcpBranchService;
+import co.appointment.shared.record.UserSummary;
+import co.appointment.shared.service.grcp.GrpcAuthClient;
+import co.appointment.shared.service.grcp.GrpcBranchClient;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.mapstruct.Named;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class MapperHelper {
+
     private final SlotRepository slotRepository;
-    private final GrcpBranchService grcpBranchService;
-    private final GrcpAuthService grcpAuthService;
+    private final GrpcAuthClient grpcAuthClient;
+    private final GrpcBranchClient grpcBranchClient;
 
-    public SlotEntity mapSlotById(final UUID id) {
+    @Named("mapSlot")
+    public SlotDTO mapSlot(final UUID id) {
         if (id == null) {
             return null;
         }
-        return slotRepository.findById(id).orElse(null);
+        return slotRepository
+                .findById(id)
+                .map(slot -> SlotDTO.builder()
+                        .id(slot.getId())
+                        .slotStart(slot.getSlotStart())
+                        .slotEnd(slot.getSlotEnd())
+                        .build())
+                .orElse(null);
     }
 
-    public BranchSummary branchSummaryById(final UUID id) {
+    @Named("mapBranchSummary")
+    public BranchSummary mapBranchSummary(final UUID id) {
         if (id == null) {
             return null;
         }
-        return grcpBranchService.getBranchById(id);
+        return grpcBranchClient.getBranchById(id);
     }
 
-    public UserRecord userInfoById(final UUID id) {
+    @Named("mapUserSummary")
+    public UserSummary mapUserSummary(final UUID id) {
         if (id == null) {
             return null;
         }
-        return grcpAuthService.getUserById(id);
+        return grpcAuthClient.getUserById(id);
     }
 }

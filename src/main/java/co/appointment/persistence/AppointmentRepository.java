@@ -1,6 +1,8 @@
 package co.appointment.persistence;
 
+import co.appointment.shared.record.AppointmentSummary;
 import java.time.LocalDate;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -23,4 +25,20 @@ public interface AppointmentRepository
                   AND upper(status) <> upper(:status)
 """)
     boolean activeCustomerAppointmentExists(UUID customerId, LocalDate appointmentDate, String status);
+
+    @Query("""
+            SELECT A.id,
+                   A.customer_id,
+                   A.branch_id,
+                   A.appointment_date,
+                   S.slot_start,
+                   S.slot_end,
+                   A.description,
+                   A.reference_no,
+                   A.status,
+                   A.cancellation_reason
+            FROM appointments A INNER JOIN slots S ON A.slot_id = S.id
+            WHERE A.reference_no = :referenceNo
+            """)
+    Optional<AppointmentSummary> getAppointmentByReferenceNo(String referenceNo);
 }

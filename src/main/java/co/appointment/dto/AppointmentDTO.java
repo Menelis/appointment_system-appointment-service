@@ -1,5 +1,7 @@
 package co.appointment.dto;
 
+import co.appointment.shared.record.BranchSummary;
+import co.appointment.shared.record.UserSummary;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Data;
@@ -7,13 +9,10 @@ import lombok.Data;
 @Data
 public class AppointmentDTO {
     private UUID id;
-    private UUID userId;
-    // private UserRecord user;
-    private UUID branchId;
-    // private BranchRecord branch;
+    private UserSummary userSummary;
+    private BranchSummary branchSummary;
     private LocalDate appointmentDate;
-    private UUID slotId;
-    // private SlotDTO slot;
+    private SlotDTO slot;
     private String description;
     private String referenceNo;
     private String status;

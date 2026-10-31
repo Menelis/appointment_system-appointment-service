@@ -1,7 +1,7 @@
 package co.appointment.service.impl;
 
 import co.appointment.shared.constant.TokenConstants;
-import co.appointment.shared.security.service.AuthenticationFacade;
+import co.appointment.shared.security.AuthenticationFacade;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
