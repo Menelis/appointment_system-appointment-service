@@ -1,0 +1,79 @@
+infrastructure:
+  env: local
+  DB:
+    USERNAME: appointment_service_user
+    PASSWORD: appointment_service_user
+spring:
+  cloud:
+    config:
+      enabled: false
+  datasource:
+    url: jdbc:postgresql://localhost:5432/appointment_service_dev
+    username: ${infrastructure.DB.USERNAME}
+    password: ${infrastructure.DB.PASSWORD}
+
+  kafka:
+    bootstrap-servers:
+      - localhost:9092
+      - localhost:9093
+      - localhost:9094
+      - localhost:9095
+      - localhost:9096
+      - localhost:9097
+    producer:
+      acks: -1
+      batch-size: 100
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+      compression-type: zstd
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://127.0.0.1:9000/oauth2/jwks
+
+  # Service intercommunication
+  grpc:
+    client:
+      channels:
+        auth-service:
+          address: static://localhost:9090
+          negotiation-type: plaintext
+        branch-service:
+          address: static://localhost:9091
+          negotiation-type: plaintext
+    server:
+      port: 9089
+
+springdoc:
+  api-docs:
+    path: /appointment-service/v3/api-docs
+  swagger-ui:
+    path: /appointment-service/swagger-ui.html
+    operations-sorter: method
+    doc-expansion: none
+app:
+  open-api:
+    info:
+      title: Appointment Branch Service
+      description: Appointment Branch Service
+      version: 1.0.0
+  white-list:
+    - "/appointment-service/swagger-ui/**"
+    - "/appointment-service/v3/api-docs/**"
+  admin-routes:
+    - "/api/v1/appointment/admin/**"
+  kafka:
+    topic:
+      outgoing:
+        notification: ${infrastructure.env}-appointment-notifications
+
+server:
+  port: 9003
+
+logging:
+  level:
+    root: info
+    co.appointment: trace
+    org.flywaydb: trace
+    org.springframework.jdbc: trace
