@@ -3,10 +3,13 @@ infrastructure:
   DB:
     USERNAME: appointment_service_user
     PASSWORD: appointment_service_user
+
 spring:
+
   cloud:
     config:
       enabled: false
+
   datasource:
     url: jdbc:postgresql://localhost:5432/appointment_service_dev
     username: ${infrastructure.DB.USERNAME}
@@ -35,13 +38,11 @@ spring:
   # Service intercommunication
   grpc:
     client:
-      channels:
+      channel:
         auth-service:
-          address: static://localhost:9090
-          negotiation-type: plaintext
+          target: "static://localhost:9090"
         branch-service:
-          address: static://localhost:9091
-          negotiation-type: plaintext
+          target: "static://localhost:9091"
     server:
       port: 9089
 

@@ -1,4 +1,8 @@
 spring:
+  grpc:
+    server:
+      port: 9089
+
   application:
     name: appointment-service
   cloud:

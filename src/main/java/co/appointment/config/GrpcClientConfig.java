@@ -6,6 +6,10 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.grpc.client.ImportGrpcClients;
 
 @Configuration
-@ImportGrpcClients(target = "auth-service", types = AuthServiceGrpc.AuthServiceBlockingStub.class)
-@ImportGrpcClients(target = "branch-service", types = BranchServiceGrpc.BranchServiceBlockingStub.class)
+@ImportGrpcClients(
+        target = "auth-service",
+        types = {AuthServiceGrpc.AuthServiceBlockingStub.class})
+@ImportGrpcClients(
+        target = "branch-service",
+        types = {BranchServiceGrpc.BranchServiceBlockingStub.class})
 public class GrpcClientConfig {}
