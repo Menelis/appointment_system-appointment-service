@@ -8,6 +8,7 @@ import co.appointment.shared.record.AppointmentSummary;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.grpc.server.service.GrpcService;
+import org.springframework.util.StringUtils;
 
 @GrpcService
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ public class AppointmentGrpcService extends AppointmentServiceGrpc.AppointmentSe
     public void processAppointmentByReferenceNo(
             final GetAppointmentByReferenceNoRequest request,
             final StreamObserver<GetAppointmentResponse> responseObserver) {
+
         AppointmentSummary appointmentSummary = appointmentRepository
                 .getAppointmentByReferenceNo(request.getReferenceNo())
                 .orElseThrow(() -> new IllegalArgumentException(
@@ -29,13 +31,24 @@ public class AppointmentGrpcService extends AppointmentServiceGrpc.AppointmentSe
                 .setCustomerId(appointmentSummary.customerId().toString())
                 .setBranchId(appointmentSummary.branchId().toString())
                 .setAppointmentDate(appointmentSummary.appointmentDate().toString())
-                .setSlotStart(appointmentSummary.slotStart())
-                .setSlotEnd(appointmentSummary.slotEnd())
-                .setDescription(appointmentSummary.description())
                 .setReferenceNo(appointmentSummary.referenceNo())
-                .setStatus(appointmentSummary.status())
-                .setCancellationReason(appointmentSummary.cancellationReason());
+                .setStatus(appointmentSummary.status());
 
+        if (StringUtils.hasText(appointmentSummary.cancellationReason())) {
+            builder.setCancellationReason(appointmentSummary.cancellationReason());
+        }
+
+        if (StringUtils.hasText(appointmentSummary.description())) {
+            builder.setDescription(appointmentSummary.description());
+        }
+
+        if (StringUtils.hasText(appointmentSummary.slotStart())) {
+            builder.setSlotStart(appointmentSummary.slotStart());
+        }
+
+        if (StringUtils.hasText(appointmentSummary.slotEnd())) {
+            builder.setSlotEnd(appointmentSummary.slotEnd());
+        }
         responseObserver.onNext(builder.build());
         responseObserver.onCompleted();
     }

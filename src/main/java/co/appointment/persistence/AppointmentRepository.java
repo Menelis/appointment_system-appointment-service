@@ -37,7 +37,7 @@ public interface AppointmentRepository
                    A.reference_no,
                    A.status,
                    A.cancellation_reason
-            FROM appointments A INNER JOIN slots S ON A.slot_id = S.id
+            FROM appointments A LEFT OUTER JOIN slots S ON A.slot_id = S.id
             WHERE A.reference_no = :referenceNo
             """)
     Optional<AppointmentSummary> getAppointmentByReferenceNo(String referenceNo);

@@ -127,7 +127,7 @@ public class AppointmentService {
                     ServiceResponseDto.builder()
                             .success(false)
                             .correlationId(xCorrelationId)
-                            .errorDescription(
+                            .responseMessage(
                                     "There is an already active appointment for date=[%s]. Only one booking can be made on the date."
                                             .formatted(request.getAppointmentDate()))
                             .build());
@@ -154,6 +154,8 @@ public class AppointmentService {
                 .success(true)
                 .correlationId(xCorrelationId)
                 .referenceNo(referenceNo)
+                .responseMessage(
+                        "Appointment has been created successfully.Your reference number is: %s".formatted(referenceNo))
                 .build());
     }
 

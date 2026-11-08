@@ -17,7 +17,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.internalServerError()
                 .body(ServiceResponseDto.builder()
                         .success(false)
-                        .errorDescription(exception.getClass().getSimpleName())
+                        .responseMessage(exception.getClass().getSimpleName())
                         .build());
     }
 
