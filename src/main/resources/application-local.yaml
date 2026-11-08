@@ -78,3 +78,11 @@ logging:
     co.appointment: trace
     org.flywaydb: trace
     org.springframework.jdbc: trace
+
+    org.springframework.grpc: TRACE
+    org.springframework.grpc.client: TRACE
+
+    # Underlying gRPC Java Channels, Name Resolvers & Load Balancers
+    io.grpc: TRACE
+    io.grpc.Channel: TRACE
+    io.grpc.netty: TRACE
