@@ -1,5 +1,6 @@
 package co.appointment.service.impl;
 
+import co.appointment.shared.constant.RoleConstants;
 import co.appointment.shared.constant.TokenConstants;
 import co.appointment.shared.security.AuthenticationFacade;
 import java.util.List;
@@ -38,5 +39,12 @@ public class AuthenticationFacadeImpl implements AuthenticationFacade {
         JwtAuthenticationToken jwtAuthenticationToken = (JwtAuthenticationToken) authentication;
         Jwt jwt = jwtAuthenticationToken.getToken();
         return jwt.getClaimAsStringList(claimName);
+    }
+
+    @Override
+    public boolean hasRole(final String role) {
+        List<String> currentUserRoles = getClaimAsList(TokenConstants.ROLES);
+
+        return currentUserRoles.stream().anyMatch(currentUserRole -> currentUserRole.equalsIgnoreCase(role));
     }
 }

@@ -51,45 +51,34 @@ public class AppointmentService {
     private final AppConfigProperties configProperties;
     private final KafkaProducerService kafkaProducerService;
 
-    private static final Set<String> ALLOWED_TO_UPDATE_ROLES =
+    private static final Set<String> APPOINTMENT_MANAGEMENT_ROLES =
             Set.of(RoleConstants.ADMIN_ROLE, RoleConstants.TELLER_ROLE);
 
-    private Page<AppointmentEntity> getSearchedOrUnSearchedAppointments(
-            final int pageNo, final int pageSize, final String searchTerm) {
-        Pageable pageable = SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        if (!StringUtils.hasText(searchTerm)) {
-            return appointmentRepository.findAll(pageable);
-        }
-        return appointmentRepository.findAll(pageable);
-    }
-
     public Page<AppointmentDTO> getAllAppointments(
-            final int pageNo, final int pageSize, final String searchTerm, final UUID xCorrelationId) {
-        final Page<AppointmentEntity> appointments = getSearchedOrUnSearchedAppointments(pageNo, pageSize, searchTerm);
+            final int pageNo, final int pageSize, final String referenceNo, final UUID xCorrelationId) {
 
-        final List<AppointmentDTO> content =
-                appointments.stream().map(appointmentMapper::toDTO).toList();
-
-        return new PageImpl<>(content, appointments.getPageable(), appointments.getTotalElements());
-    }
-
-    private Page<AppointmentEntity> getSearchedOrUnSearchedCustomerAppointments(
-            final int pageNo, final int pageSize, final String searchTerm) {
         Pageable pageable = SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        if (!StringUtils.hasText(searchTerm)) {
-            return appointmentRepository.findAll(pageable);
-        }
-        return appointmentRepository.findAll(pageable);
+        final Page<AppointmentEntity> appointments = fetchAppointments(referenceNo, pageable);
+
+        return appointments.map(appointmentMapper::toDTO);
     }
+    private Page<AppointmentEntity> fetchAppointments(
+            final String referenceNo,
+            final Pageable pageable
+    ) {
+        boolean isCustomer = authenticationFacade.hasRole(RoleConstants.CUSTOMER_ROLE);
 
-    public Page<AppointmentDTO> getAppointmentsByCustomer(
-            final int pageNo, final int pageSize, final String searchTerm, final UUID xCorrelationId) {
-        final Page<AppointmentEntity> pagedAppointments =
-                getSearchedOrUnSearchedCustomerAppointments(pageNo, pageSize, searchTerm);
+        boolean hasRef = StringUtils.hasText(referenceNo);
 
-        final List<AppointmentDTO> content =
-                pagedAppointments.stream().map(appointmentMapper::toDTO).toList();
-        return new PageImpl<>(content, pagedAppointments.getPageable(), pagedAppointments.getTotalElements());
+        if(isCustomer) {
+            UUID userId = authenticationFacade.getUserId();
+            return hasRef
+                    ? appointmentRepository.findAllByCustomerIdAndReferenceNo(userId, referenceNo, pageable)
+                    : appointmentRepository.findAllByCustomerId(userId, pageable);
+        }
+        return hasRef
+                ? appointmentRepository.findAllByReferenceNo(referenceNo, pageable)
+                : appointmentRepository.findAll(pageable);
     }
 
     public Optional<AppointmentDTO> getAppointmentById(final UUID id, final UUID xCorrelationId) {
@@ -98,17 +87,6 @@ public class AppointmentService {
             throw new ServiceException(HttpStatus.NO_CONTENT);
         }
         return Optional.of(appointmentMapper.toDTO(optionalAppointment.get()));
-    }
-
-    public Page<AppointmentDTO> getAppointmentByReferenceNo(
-            final String referenceNo, final int pageNo, final int pageSize, final UUID xCorrelationId) {
-        Page<AppointmentEntity> pagedAppointments = appointmentRepository.findAllByReferenceNo(
-                referenceNo,
-                SharedObjectUtils.getPageable(
-                        pageNo, pageSize, Sort.by("createdAt").descending()));
-        List<AppointmentDTO> content =
-                pagedAppointments.stream().map(appointmentMapper::toDTO).toList();
-        return new PageImpl<>(content, pagedAppointments.getPageable(), pagedAppointments.getTotalElements());
     }
 
     public boolean activeCustomerAppointmentExists(final NewAppointmentRequest newAppointmentRequest) {
@@ -181,11 +159,12 @@ public class AppointmentService {
 
     public Optional<ServiceResponseDto> updateAppointment(
             final UpdateAppointmentRequest request, final UUID xCorrelationId) {
+
         AppointmentEntity appointment = appointmentRepository
                 .findById(request.getId())
                 .orElseThrow(() -> new ServiceException(HttpStatus.NO_CONTENT));
 
-        validateAllowedToUpdate(appointment);
+        allowedToPerformAction(isOwner(appointment.getCustomerId()));
 
         boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
 
@@ -231,7 +210,7 @@ public class AppointmentService {
                 .findById(request.getId())
                 .orElseThrow(() -> new ServiceException(HttpStatus.NO_CONTENT));
 
-        validateAllowedToUpdate(appointment);
+        allowedToPerformAction(Objects.equals(appointment.getCustomerId(), authenticationFacade.getUserId()));
 
         boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
         String status = request.getStatus().toUpperCase();
@@ -257,20 +236,23 @@ public class AppointmentService {
                 .build());
     }
 
-    private void validateAllowedToUpdate(final AppointmentEntity appointment) {
+    private boolean isOwner(final UUID userId) {
 
         UUID loggedInUserId = authenticationFacade.getUserId();
 
-        List<String> loggedInUseRoles = authenticationFacade.getClaimAsList(TokenConstants.ROLES);
+        return Objects.equals(loggedInUserId, userId);
+    }
 
-        if (log.isTraceEnabled()) {
-            log.trace("Current user roles=[{}]", loggedInUseRoles);
+    private void allowedToPerformAction(final boolean isOwner) {
+        if (isOwner) {
+            return;
         }
-
-        boolean isOwner = Objects.equals(loggedInUserId, appointment.getCustomerId());
-        boolean hasRequiredRole = loggedInUseRoles.stream().anyMatch(ALLOWED_TO_UPDATE_ROLES::contains);
-
-        if (!hasRequiredRole && !isOwner) {
+        List<String> loggedInUserRoles = authenticationFacade.getClaimAsList(TokenConstants.ROLES);
+        if (log.isTraceEnabled()) {
+            log.trace("Current user roles=[{}]", loggedInUserRoles);
+        }
+        boolean hasRequiredRole = loggedInUserRoles.stream().anyMatch(APPOINTMENT_MANAGEMENT_ROLES::contains);
+        if (!hasRequiredRole) {
             throw new ServiceException(HttpStatus.FORBIDDEN);
         }
     }

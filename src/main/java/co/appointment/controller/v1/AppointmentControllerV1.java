@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/v1/appointment")
+@RequestMapping("/api/v1/appointments")
 @RequiredArgsConstructor
 @Tag(name = "Appointments", description = "Endpoints for managing and viewing appointments")
 public class AppointmentControllerV1 {
@@ -54,7 +54,7 @@ public class AppointmentControllerV1 {
                 @ApiResponse(responseCode = "403", description = "Insufficient permissions", content = @Content),
                 @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)
             })
-    @GetMapping("/admin/get-all-appointments")
+    @GetMapping
     public ResponseEntity<Page<AppointmentDTO>> getAllAppointments(
             @RequestParam(
                             name = SharedConstants.PAGE_NUMBER_PARAMETER_NAME,
@@ -64,70 +64,18 @@ public class AppointmentControllerV1 {
                             name = SharedConstants.PAGE_SIZE_PARAMETER_NAME,
                             defaultValue = SharedConstants.PAGE_SIZE_DEFAULT_VALUE)
                     final int pageSize,
-            @RequestParam(name = SharedConstants.SEARCH_TERM_PARAMETER_NAME, required = false) final String searchTerm,
-            @RequestHeader(X_CORRELATION_ID) final UUID xCorrelationId) {
-        Page<AppointmentDTO> pagedAppointments =
-                appointmentService.getAllAppointments(pageNumber, pageSize, searchTerm, xCorrelationId);
-        return ResponseEntity.ok(pagedAppointments);
-    }
-
-    @Operation(summary = "Get appointments", description = "Retrieves all appointments for logged in customer")
-    @ApiResponses(
-            value = {
-                @ApiResponse(
-                        responseCode = "200",
-                        description = "Successfully retrieved list of appointments for customer",
-                        content =
-                                @Content(
-                                        array = @ArraySchema(schema = @Schema(implementation = AppointmentDTO.class)))),
-                @ApiResponse(responseCode = "204", description = "No appointments found", content = @Content),
-                @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content),
-                @ApiResponse(responseCode = "403", description = "Insufficient permissions", content = @Content),
-                @ApiResponse(responseCode = "500", description = "Internal Server Error", content = @Content)
-            })
-    @GetMapping("/customer/appointments")
-    public ResponseEntity<Page<AppointmentDTO>> getCustomerAppointments(
-            @RequestParam(
-                            name = SharedConstants.PAGE_NUMBER_PARAMETER_NAME,
-                            defaultValue = SharedConstants.PAGE_NUMBER_DEFAULT_VALUE)
-                    final int pageNumber,
-            @RequestParam(
-                            name = SharedConstants.PAGE_SIZE_PARAMETER_NAME,
-                            defaultValue = SharedConstants.PAGE_SIZE_DEFAULT_VALUE)
-                    final int pageSize,
-            @RequestParam(name = SharedConstants.SEARCH_TERM_PARAMETER_NAME, required = false) final String searchTerm,
+            @RequestParam(required = false) final String referenceNo,
             @RequestHeader(X_CORRELATION_ID) final UUID xCorrelationId) {
 
         Page<AppointmentDTO> pagedAppointments =
-                appointmentService.getAppointmentsByCustomer(pageNumber, pageSize, searchTerm, xCorrelationId);
-
-        return ResponseEntity.ok(pagedAppointments);
-    }
-
-    @GetMapping("/findByReferenceNo")
-    public ResponseEntity<Page<AppointmentDTO>> findAppointmentByReferenceNo(
-            @RequestParam(name = "referenceNo") final String referenceNo,
-            @RequestParam(
-                            name = SharedConstants.PAGE_NUMBER_PARAMETER_NAME,
-                            defaultValue = SharedConstants.PAGE_NUMBER_DEFAULT_VALUE,
-                            required = false)
-                    final int pageNumber,
-            @RequestParam(
-                            name = SharedConstants.PAGE_SIZE_PARAMETER_NAME,
-                            defaultValue = SharedConstants.PAGE_SIZE_DEFAULT_VALUE,
-                            required = false)
-                    final int pageSize,
-            @RequestHeader(X_CORRELATION_ID) final UUID xCorrelationId) {
-
-        Page<AppointmentDTO> pagedAppointments =
-                appointmentService.getAppointmentByReferenceNo(referenceNo, pageNumber, pageSize, xCorrelationId);
+                appointmentService.getAllAppointments(pageNumber, pageSize, referenceNo, xCorrelationId);
 
         return ResponseEntity.ok(pagedAppointments);
     }
 
     @Operation(
-            summary = "Get Appointment by ID",
-            description = "Retrieves Appointment details that matches the provided ID(UUID).")
+            summary = "Get Appointment by Id",
+            description = "Retrieves Appointment details that matches the provided Id(UUID).")
     @ApiResponses(
             value = {
                 @ApiResponse(
