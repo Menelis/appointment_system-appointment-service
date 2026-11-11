@@ -1,6 +1,5 @@
 package co.appointment.service.impl;
 
-import co.appointment.shared.constant.RoleConstants;
 import co.appointment.shared.constant.TokenConstants;
 import co.appointment.shared.security.AuthenticationFacade;
 import java.util.List;

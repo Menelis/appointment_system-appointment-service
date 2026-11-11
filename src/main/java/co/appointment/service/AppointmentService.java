@@ -33,7 +33,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -62,15 +61,13 @@ public class AppointmentService {
 
         return appointments.map(appointmentMapper::toDTO);
     }
-    private Page<AppointmentEntity> fetchAppointments(
-            final String referenceNo,
-            final Pageable pageable
-    ) {
+
+    private Page<AppointmentEntity> fetchAppointments(final String referenceNo, final Pageable pageable) {
         boolean isCustomer = authenticationFacade.hasRole(RoleConstants.CUSTOMER_ROLE);
 
         boolean hasRef = StringUtils.hasText(referenceNo);
 
-        if(isCustomer) {
+        if (isCustomer) {
             UUID userId = authenticationFacade.getUserId();
             return hasRef
                     ? appointmentRepository.findAllByCustomerIdAndReferenceNo(userId, referenceNo, pageable)
