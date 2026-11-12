@@ -63,19 +63,19 @@ public class AppointmentService {
     }
 
     private Page<AppointmentEntity> fetchAppointments(final String referenceNo, final Pageable pageable) {
-        boolean isCustomer = authenticationFacade.hasRole(RoleConstants.CUSTOMER_ROLE);
-
+        boolean isAdmin = authenticationFacade.hasRole(RoleConstants.ADMIN_ROLE);
+        boolean isTeller = authenticationFacade.hasRole(RoleConstants.TELLER_ROLE);
         boolean hasRef = StringUtils.hasText(referenceNo);
 
-        if (isCustomer) {
-            UUID userId = authenticationFacade.getUserId();
+        if (isAdmin || isTeller) {
             return hasRef
-                    ? appointmentRepository.findAllByCustomerIdAndReferenceNo(userId, referenceNo, pageable)
-                    : appointmentRepository.findAllByCustomerId(userId, pageable);
+                    ? appointmentRepository.findAllByReferenceNo(referenceNo, pageable)
+                    : appointmentRepository.findAll(pageable);
         }
+        UUID userId = authenticationFacade.getUserId();
         return hasRef
-                ? appointmentRepository.findAllByReferenceNo(referenceNo, pageable)
-                : appointmentRepository.findAll(pageable);
+                ? appointmentRepository.findAllByCustomerIdAndReferenceNo(userId, referenceNo, pageable)
+                : appointmentRepository.findAllByCustomerId(userId, pageable);
     }
 
     public Optional<AppointmentDTO> getAppointmentById(final UUID id, final UUID xCorrelationId) {
