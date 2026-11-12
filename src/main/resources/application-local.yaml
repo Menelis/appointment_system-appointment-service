@@ -2,7 +2,7 @@ infrastructure:
   env: local
   DB:
     USERNAME: appointment_service_user
-    PASSWORD: appointment_service_user
+    PASSWORD: ${secrets.db_password}
 
 spring:
 
