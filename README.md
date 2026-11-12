@@ -2,7 +2,7 @@
 - This service is responsible for appointments:
   - Customers
     - Book or cancel their appointments
-  - Administrator/User
+  - Administrator/Teller
     - Manage appointments
     - Confirm appointments
     - Cancel appointment with reason
@@ -118,23 +118,19 @@ infrastructure:
   env: local
   DB:
     USERNAME: {db_user}
-    PASSWORD: {db_password}
+    PASSWORD: ${secret.db_password}
+
 spring:
+
   cloud:
     config:
-      enabled: false
+      enabled: false # If not running config server
+
   datasource:
     url: jdbc:postgresql://localhost:5432/{appointment_db}
     username: ${infrastructure.DB.USERNAME}
     password: ${infrastructure.DB.PASSWORD}
-  jpa:
-    hibernate:
-      ddl-auto: update
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+
   kafka:
     bootstrap-servers:
       - localhost:9092
@@ -145,11 +141,22 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       compression-type: zstd
+
   security:
     oauth2:
       resourceserver:
         jwt:
           jwk-set-uri: http://auth-service:9000/oauth2/jwks
+  
+  # Service intercommunication
+  grpc:
+    client:
+      channel:
+        auth-service:
+          target: "static://localhost:9090"
+        branch-service:
+          target: "static://localhost:9091"
+
 springdoc:
   api-docs:
     path: /appointment-service/v3/api-docs
@@ -157,6 +164,7 @@ springdoc:
     path: /appointment-service/swagger-ui.html
     operations-sorter: method
     doc-expansion: none
+
 app:
   open-api:
     info:
@@ -169,20 +177,6 @@ app:
   admin-routes:
     - "/api/v1/appointment/admin/**"
   kafka:
-    notification-topic: ${infrastructure.env}-appointment-notifications
-  email-template:
-    pending-confirmation-email-template: "Dear %s,<br/><br/> Thank you for making an appointment at branch: %s for date:%s at slot: %s.<br/> Your reference number is: %s <br/> Booking status is:<b>%s</b>.<br/> You will get a notification with the progress of your appointment.<br/></br/><br/> %s<br/><br/>%s"
-    confirmation-email-template: "Dear %s,<br/><br/> Your appointment at branch: %s for date:%s at slot: %s.<br/> Your reference number is: %s <br/> Booking status is: <b>%s</b>. <br/>We looking forward in seeing you.<br/></br/><br/>%s<br/><br/>%s"
-    cancellation-email-template: "Dear %s,<br/><br/> Your appointment at branch: %s for date:%s at slot: %s has been <b>CANCELLED</b> due to reason: %s.<br/>Thank You for your effort in making the booking.<br/></br/><br/>%s<br/><br/>%s"
-
-# Service intercommunication
-grpc:
-  client:
-    auth-service: # This key is used by @GrpcClient
-      address: static://auth-service:9090
-      negotiation-type: plaintext
-    branch-service: # This key is used by @GrpcClient
-      address: static://branch-service:9091
-      negotiation-type: plaintext
-
+    outgoing:
+      notification: ${infrastructure.env}-appointment-notifications
 ```
