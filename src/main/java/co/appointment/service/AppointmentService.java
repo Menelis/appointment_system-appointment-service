@@ -1,13 +1,12 @@
 package co.appointment.service;
 
-import static co.appointment.constant.AppointmentStatus.BOOKING_CONFIRMED;
-import static co.appointment.constant.AppointmentStatus.BOOKING_PENDING_CONFIRMATION;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_CANCELLED_EVENT;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_CONFIRMED_EVENT;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_PENDING_CONFIRMATION_EVENT;
+import static co.appointment.shared.enums.AppointmentStatus.BOOKING_CANCELLED;
+import static co.appointment.shared.enums.AppointmentStatus.BOOKING_PENDING_CONFIRMATION;
 
 import co.appointment.config.AppConfigProperties;
-import co.appointment.constant.AppointmentStatus;
 import co.appointment.dto.AppointmentDTO;
 import co.appointment.kafka.KafkaProducerService;
 import co.appointment.mapper.AppointmentMapper;
@@ -19,6 +18,7 @@ import co.appointment.persistence.AppointmentRepository;
 import co.appointment.shared.constant.RoleConstants;
 import co.appointment.shared.constant.TokenConstants;
 import co.appointment.shared.dto.ServiceResponseDto;
+import co.appointment.shared.enums.AppointmentStatus;
 import co.appointment.shared.event.AppointmentEvent;
 import co.appointment.shared.event.DomainEventMessage;
 import co.appointment.shared.exception.ServiceException;
@@ -88,9 +88,7 @@ public class AppointmentService {
 
     public boolean activeCustomerAppointmentExists(final NewAppointmentRequest newAppointmentRequest) {
         return appointmentRepository.activeCustomerAppointmentExists(
-                authenticationFacade.getUserId(),
-                newAppointmentRequest.getAppointmentDate(),
-                AppointmentStatus.BOOKING_CANCELLED);
+                authenticationFacade.getUserId(), newAppointmentRequest.getAppointmentDate(), BOOKING_CANCELLED.name());
     }
 
     public Optional<ServiceResponseDto> createAppointment(
@@ -109,7 +107,7 @@ public class AppointmentService {
         }
         final String referenceNo = UUID.randomUUID().toString();
         AppointmentEntity appointment = appointmentMapper.toEntity(request);
-        appointment.setStatus(BOOKING_PENDING_CONFIRMATION);
+        appointment.setStatus(BOOKING_PENDING_CONFIRMATION.name());
         appointment.setCustomerId(authenticationFacade.getUserId());
         appointment.setReferenceNo(referenceNo);
 
@@ -141,7 +139,7 @@ public class AppointmentService {
     }
 
     private DomainEventMessage<AppointmentEvent> getDomainEventMessage(
-            final AppointmentEvent appointmentEvent, final UUID xCorrelationId, final String status) {
+            final AppointmentEvent appointmentEvent, final UUID xCorrelationId, final AppointmentStatus status) {
         final String eventType = switch (status) {
             case BOOKING_PENDING_CONFIRMATION -> BOOKING_PENDING_CONFIRMATION_EVENT;
             case BOOKING_CONFIRMED -> BOOKING_CONFIRMED_EVENT;
@@ -165,11 +163,11 @@ public class AppointmentService {
 
         boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
 
-        String status = getStatus(request.getStatus(), appointment.getStatus()).toUpperCase();
+        AppointmentStatus status = getStatus(request.getStatus(), appointment.getStatus());
         appointmentMapper.toEntity(request, appointment);
 
         appointment.setUpdatedBy(authenticationFacade.getUserId());
-        appointment.setStatus(status);
+        appointment.setStatus(status.name());
         appointmentRepository.save(appointment);
 
         if (statusChanged) {
@@ -189,11 +187,11 @@ public class AppointmentService {
                 .build());
     }
 
-    private String getStatus(final String requestStatus, final String dbObjectStatus) {
+    private AppointmentStatus getStatus(final String requestStatus, final String dbObjectStatus) {
         if (StringUtils.hasText(requestStatus)) {
-            return requestStatus;
+            return AppointmentStatus.valueOf(requestStatus);
         }
-        return dbObjectStatus;
+        return AppointmentStatus.valueOf(dbObjectStatus);
     }
 
     private boolean appointmentStatusChanged(final String oldStatus, final String newStatus) {
@@ -210,9 +208,9 @@ public class AppointmentService {
         allowedToPerformAction(Objects.equals(appointment.getCustomerId(), authenticationFacade.getUserId()));
 
         boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
-        String status = request.getStatus().toUpperCase();
+        AppointmentStatus status = AppointmentStatus.valueOf(request.getStatus());
         appointment.setUpdatedBy(authenticationFacade.getUserId());
-        appointment.setStatus(status);
+        appointment.setStatus(status.name());
         appointment.setCancellationReason(request.getReason());
         appointmentRepository.save(appointment);
 
