@@ -3,8 +3,8 @@ package co.appointment.service;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_CANCELLED_EVENT;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_CONFIRMED_EVENT;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_PENDING_CONFIRMATION_EVENT;
-import static co.appointment.shared.enums.AppointmentStatus.BOOKING_CANCELLED;
-import static co.appointment.shared.enums.AppointmentStatus.BOOKING_PENDING_CONFIRMATION;
+import static co.appointment.shared.enums.AppointmentStatus.CANCELLED;
+import static co.appointment.shared.enums.AppointmentStatus.PENDING_CONFIRMATION;
 
 import co.appointment.config.AppConfigProperties;
 import co.appointment.dto.AppointmentDTO;
@@ -88,7 +88,7 @@ public class AppointmentService {
 
     public boolean activeCustomerAppointmentExists(final NewAppointmentRequest newAppointmentRequest) {
         return appointmentRepository.activeCustomerAppointmentExists(
-                authenticationFacade.getUserId(), newAppointmentRequest.getAppointmentDate(), BOOKING_CANCELLED.name());
+                authenticationFacade.getUserId(), newAppointmentRequest.getAppointmentDate(), CANCELLED.name());
     }
 
     public Optional<ServiceResponseDto> createAppointment(
@@ -107,7 +107,7 @@ public class AppointmentService {
         }
         final String referenceNo = UUID.randomUUID().toString();
         AppointmentEntity appointment = appointmentMapper.toEntity(request);
-        appointment.setStatus(BOOKING_PENDING_CONFIRMATION.name());
+        appointment.setStatus(PENDING_CONFIRMATION.name());
         appointment.setCustomerId(authenticationFacade.getUserId());
         appointment.setReferenceNo(referenceNo);
 
@@ -121,7 +121,7 @@ public class AppointmentService {
                                 .eventId(UUID.randomUUID())
                                 .build(),
                         xCorrelationId,
-                        BOOKING_PENDING_CONFIRMATION),
+                        PENDING_CONFIRMATION),
                 Map.of());
         return Optional.of(ServiceResponseDto.builder()
                 .success(true)
@@ -141,8 +141,8 @@ public class AppointmentService {
     private DomainEventMessage<AppointmentEvent> getDomainEventMessage(
             final AppointmentEvent appointmentEvent, final UUID xCorrelationId, final AppointmentStatus status) {
         final String eventType = switch (status) {
-            case BOOKING_PENDING_CONFIRMATION -> BOOKING_PENDING_CONFIRMATION_EVENT;
-            case BOOKING_CONFIRMED -> BOOKING_CONFIRMED_EVENT;
+            case PENDING_CONFIRMATION -> BOOKING_PENDING_CONFIRMATION_EVENT;
+            case CONFIRMED -> BOOKING_CONFIRMED_EVENT;
             default -> BOOKING_CANCELLED_EVENT;
         };
         return DomainEventMessage.<AppointmentEvent>builder()
