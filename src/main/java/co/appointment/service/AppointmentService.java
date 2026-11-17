@@ -1,13 +1,12 @@
 package co.appointment.service;
 
-import static co.appointment.constant.AppointmentStatus.BOOKING_CONFIRMED;
-import static co.appointment.constant.AppointmentStatus.BOOKING_PENDING_CONFIRMATION;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_CANCELLED_EVENT;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_CONFIRMED_EVENT;
 import static co.appointment.shared.constant.EventTypeConstants.BOOKING_PENDING_CONFIRMATION_EVENT;
+import static co.appointment.shared.enums.AppointmentStatus.CANCELLED;
+import static co.appointment.shared.enums.AppointmentStatus.PENDING_CONFIRMATION;
 
 import co.appointment.config.AppConfigProperties;
-import co.appointment.constant.AppointmentStatus;
 import co.appointment.dto.AppointmentDTO;
 import co.appointment.kafka.KafkaProducerService;
 import co.appointment.mapper.AppointmentMapper;
@@ -19,6 +18,7 @@ import co.appointment.persistence.AppointmentRepository;
 import co.appointment.shared.constant.RoleConstants;
 import co.appointment.shared.constant.TokenConstants;
 import co.appointment.shared.dto.ServiceResponseDto;
+import co.appointment.shared.enums.AppointmentStatus;
 import co.appointment.shared.event.AppointmentEvent;
 import co.appointment.shared.event.DomainEventMessage;
 import co.appointment.shared.exception.ServiceException;
@@ -33,7 +33,6 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -51,45 +50,32 @@ public class AppointmentService {
     private final AppConfigProperties configProperties;
     private final KafkaProducerService kafkaProducerService;
 
-    private static final Set<String> ALLOWED_TO_UPDATE_ROLES =
+    private static final Set<String> APPOINTMENT_MANAGEMENT_ROLES =
             Set.of(RoleConstants.ADMIN_ROLE, RoleConstants.TELLER_ROLE);
 
-    private Page<AppointmentEntity> getSearchedOrUnSearchedAppointments(
-            final int pageNo, final int pageSize, final String searchTerm) {
-        Pageable pageable = SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        if (!StringUtils.hasText(searchTerm)) {
-            return appointmentRepository.findAll(pageable);
-        }
-        return appointmentRepository.findAll(pageable);
-    }
-
     public Page<AppointmentDTO> getAllAppointments(
-            final int pageNo, final int pageSize, final String searchTerm, final UUID xCorrelationId) {
-        final Page<AppointmentEntity> appointments = getSearchedOrUnSearchedAppointments(pageNo, pageSize, searchTerm);
+            final int pageNo, final int pageSize, final String referenceNo, final UUID xCorrelationId) {
 
-        final List<AppointmentDTO> content =
-                appointments.stream().map(appointmentMapper::toDTO).toList();
-
-        return new PageImpl<>(content, appointments.getPageable(), appointments.getTotalElements());
-    }
-
-    private Page<AppointmentEntity> getSearchedOrUnSearchedCustomerAppointments(
-            final int pageNo, final int pageSize, final String searchTerm) {
         Pageable pageable = SharedObjectUtils.getPageable(pageNo, pageSize, Sort.by(Sort.Direction.DESC, "createdAt"));
-        if (!StringUtils.hasText(searchTerm)) {
-            return appointmentRepository.findAll(pageable);
-        }
-        return appointmentRepository.findAll(pageable);
+        final Page<AppointmentEntity> appointments = fetchAppointments(referenceNo, pageable);
+
+        return appointments.map(appointmentMapper::toDTO);
     }
 
-    public Page<AppointmentDTO> getAppointmentsByCustomer(
-            final int pageNo, final int pageSize, final String searchTerm, final UUID xCorrelationId) {
-        final Page<AppointmentEntity> pagedAppointments =
-                getSearchedOrUnSearchedCustomerAppointments(pageNo, pageSize, searchTerm);
+    private Page<AppointmentEntity> fetchAppointments(final String referenceNo, final Pageable pageable) {
+        boolean isAdmin = authenticationFacade.hasRole(RoleConstants.ADMIN_ROLE);
+        boolean isTeller = authenticationFacade.hasRole(RoleConstants.TELLER_ROLE);
+        boolean hasRef = StringUtils.hasText(referenceNo);
 
-        final List<AppointmentDTO> content =
-                pagedAppointments.stream().map(appointmentMapper::toDTO).toList();
-        return new PageImpl<>(content, pagedAppointments.getPageable(), pagedAppointments.getTotalElements());
+        if (isAdmin || isTeller) {
+            return hasRef
+                    ? appointmentRepository.findAllByReferenceNo(referenceNo, pageable)
+                    : appointmentRepository.findAll(pageable);
+        }
+        UUID userId = authenticationFacade.getUserId();
+        return hasRef
+                ? appointmentRepository.findAllByCustomerIdAndReferenceNo(userId, referenceNo, pageable)
+                : appointmentRepository.findAllByCustomerId(userId, pageable);
     }
 
     public Optional<AppointmentDTO> getAppointmentById(final UUID id, final UUID xCorrelationId) {
@@ -100,22 +86,9 @@ public class AppointmentService {
         return Optional.of(appointmentMapper.toDTO(optionalAppointment.get()));
     }
 
-    public Page<AppointmentDTO> getAppointmentByReferenceNo(
-            final String referenceNo, final int pageNo, final int pageSize, final UUID xCorrelationId) {
-        Page<AppointmentEntity> pagedAppointments = appointmentRepository.findAllByReferenceNo(
-                referenceNo,
-                SharedObjectUtils.getPageable(
-                        pageNo, pageSize, Sort.by("createdAt").descending()));
-        List<AppointmentDTO> content =
-                pagedAppointments.stream().map(appointmentMapper::toDTO).toList();
-        return new PageImpl<>(content, pagedAppointments.getPageable(), pagedAppointments.getTotalElements());
-    }
-
     public boolean activeCustomerAppointmentExists(final NewAppointmentRequest newAppointmentRequest) {
         return appointmentRepository.activeCustomerAppointmentExists(
-                authenticationFacade.getUserId(),
-                newAppointmentRequest.getAppointmentDate(),
-                AppointmentStatus.BOOKING_CANCELLED);
+                authenticationFacade.getUserId(), newAppointmentRequest.getAppointmentDate(), CANCELLED.name());
     }
 
     public Optional<ServiceResponseDto> createAppointment(
@@ -134,7 +107,7 @@ public class AppointmentService {
         }
         final String referenceNo = UUID.randomUUID().toString();
         AppointmentEntity appointment = appointmentMapper.toEntity(request);
-        appointment.setStatus(BOOKING_PENDING_CONFIRMATION);
+        appointment.setStatus(PENDING_CONFIRMATION.name());
         appointment.setCustomerId(authenticationFacade.getUserId());
         appointment.setReferenceNo(referenceNo);
 
@@ -148,7 +121,7 @@ public class AppointmentService {
                                 .eventId(UUID.randomUUID())
                                 .build(),
                         xCorrelationId,
-                        BOOKING_PENDING_CONFIRMATION),
+                        PENDING_CONFIRMATION),
                 Map.of());
         return Optional.of(ServiceResponseDto.builder()
                 .success(true)
@@ -166,10 +139,10 @@ public class AppointmentService {
     }
 
     private DomainEventMessage<AppointmentEvent> getDomainEventMessage(
-            final AppointmentEvent appointmentEvent, final UUID xCorrelationId, final String status) {
+            final AppointmentEvent appointmentEvent, final UUID xCorrelationId, final AppointmentStatus status) {
         final String eventType = switch (status) {
-            case BOOKING_PENDING_CONFIRMATION -> BOOKING_PENDING_CONFIRMATION_EVENT;
-            case BOOKING_CONFIRMED -> BOOKING_CONFIRMED_EVENT;
+            case PENDING_CONFIRMATION -> BOOKING_PENDING_CONFIRMATION_EVENT;
+            case CONFIRMED -> BOOKING_CONFIRMED_EVENT;
             default -> BOOKING_CANCELLED_EVENT;
         };
         return DomainEventMessage.<AppointmentEvent>builder()
@@ -181,19 +154,20 @@ public class AppointmentService {
 
     public Optional<ServiceResponseDto> updateAppointment(
             final UpdateAppointmentRequest request, final UUID xCorrelationId) {
+
         AppointmentEntity appointment = appointmentRepository
                 .findById(request.getId())
                 .orElseThrow(() -> new ServiceException(HttpStatus.NO_CONTENT));
 
-        validateAllowedToUpdate(appointment);
+        allowedToPerformAction(isOwner(appointment.getCustomerId()));
 
         boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
 
-        String status = getStatus(request.getStatus(), appointment.getStatus()).toUpperCase();
+        AppointmentStatus status = getStatus(request.getStatus(), appointment.getStatus());
         appointmentMapper.toEntity(request, appointment);
 
         appointment.setUpdatedBy(authenticationFacade.getUserId());
-        appointment.setStatus(status);
+        appointment.setStatus(status.name());
         appointmentRepository.save(appointment);
 
         if (statusChanged) {
@@ -213,11 +187,11 @@ public class AppointmentService {
                 .build());
     }
 
-    private String getStatus(final String requestStatus, final String dbObjectStatus) {
+    private AppointmentStatus getStatus(final String requestStatus, final String dbObjectStatus) {
         if (StringUtils.hasText(requestStatus)) {
-            return requestStatus;
+            return AppointmentStatus.valueOf(requestStatus);
         }
-        return dbObjectStatus;
+        return AppointmentStatus.valueOf(dbObjectStatus);
     }
 
     private boolean appointmentStatusChanged(final String oldStatus, final String newStatus) {
@@ -231,12 +205,12 @@ public class AppointmentService {
                 .findById(request.getId())
                 .orElseThrow(() -> new ServiceException(HttpStatus.NO_CONTENT));
 
-        validateAllowedToUpdate(appointment);
+        allowedToPerformAction(Objects.equals(appointment.getCustomerId(), authenticationFacade.getUserId()));
 
         boolean statusChanged = appointmentStatusChanged(appointment.getStatus(), request.getStatus());
-        String status = request.getStatus().toUpperCase();
+        AppointmentStatus status = AppointmentStatus.valueOf(request.getStatus());
         appointment.setUpdatedBy(authenticationFacade.getUserId());
-        appointment.setStatus(status);
+        appointment.setStatus(status.name());
         appointment.setCancellationReason(request.getReason());
         appointmentRepository.save(appointment);
 
@@ -257,20 +231,23 @@ public class AppointmentService {
                 .build());
     }
 
-    private void validateAllowedToUpdate(final AppointmentEntity appointment) {
+    private boolean isOwner(final UUID userId) {
 
         UUID loggedInUserId = authenticationFacade.getUserId();
 
-        List<String> loggedInUseRoles = authenticationFacade.getClaimAsList(TokenConstants.ROLES);
+        return Objects.equals(loggedInUserId, userId);
+    }
 
-        if (log.isTraceEnabled()) {
-            log.trace("Current user roles=[{}]", loggedInUseRoles);
+    private void allowedToPerformAction(final boolean isOwner) {
+        if (isOwner) {
+            return;
         }
-
-        boolean isOwner = Objects.equals(loggedInUserId, appointment.getCustomerId());
-        boolean hasRequiredRole = loggedInUseRoles.stream().anyMatch(ALLOWED_TO_UPDATE_ROLES::contains);
-
-        if (!hasRequiredRole && !isOwner) {
+        List<String> loggedInUserRoles = authenticationFacade.getClaimAsList(TokenConstants.ROLES);
+        if (log.isTraceEnabled()) {
+            log.trace("Current user roles=[{}]", loggedInUserRoles);
+        }
+        boolean hasRequiredRole = loggedInUserRoles.stream().anyMatch(APPOINTMENT_MANAGEMENT_ROLES::contains);
+        if (!hasRequiredRole) {
             throw new ServiceException(HttpStatus.FORBIDDEN);
         }
     }

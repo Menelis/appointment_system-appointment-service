@@ -13,6 +13,8 @@ import org.springframework.data.repository.ListPagingAndSortingRepository;
 public interface AppointmentRepository
         extends CrudRepository<AppointmentEntity, UUID>, ListPagingAndSortingRepository<AppointmentEntity, UUID> {
 
+    Page<AppointmentEntity> findAllByCustomerIdAndReferenceNo(UUID customerId, String referenceNo, Pageable pageable);
+
     Page<AppointmentEntity> findAllByCustomerId(UUID customerId, Pageable pageable);
 
     Page<AppointmentEntity> findAllByReferenceNo(String referenceNo, Pageable pageable);

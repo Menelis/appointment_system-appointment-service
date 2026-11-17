@@ -39,4 +39,11 @@ public class AuthenticationFacadeImpl implements AuthenticationFacade {
         Jwt jwt = jwtAuthenticationToken.getToken();
         return jwt.getClaimAsStringList(claimName);
     }
+
+    @Override
+    public boolean hasRole(final String role) {
+        List<String> currentUserRoles = getClaimAsList(TokenConstants.ROLES);
+
+        return currentUserRoles.stream().anyMatch(currentUserRole -> currentUserRole.equalsIgnoreCase(role));
+    }
 }
